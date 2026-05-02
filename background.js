@@ -111,6 +111,20 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
             downloadFontFile(msg.url, msg.filename);
             return false;
         }
+
+        if (msg.action === 'fetchServerHeaders') {
+            fetchServerHeaders(msg.url, sendResponse);
+            return true;
+        }
+
+        // Panel closed by user (Chrome's built-in X or window.close)
+        if (msg.action === 'panelClosedByUser') {
+            if (panelTabId !== null) {
+                sendToTab(panelTabId, { action: 'panelClosedByUser' });
+            }
+            panelTabId = null;
+            return false;
+        }
     }
 
     if (msg.target === 'background' && tabId) {
@@ -185,6 +199,22 @@ function captureAndDownloadScreenshot(tabId) {
             });
         });
     });
+}
+
+// Fetch server headers from a URL
+function fetchServerHeaders(url, sendResponse) {
+    fetch(url, { method: 'HEAD', redirect: 'follow' })
+        .then(function(resp) {
+            var headers = {};
+            resp.headers.forEach(function(val, key) {
+                headers[key.toLowerCase()] = val;
+            });
+            sendResponse({ headers: headers, status: resp.status });
+        })
+        .catch(function(err) {
+            console.error('[Canopy Ruler] Failed to fetch headers:', err);
+            sendResponse({ headers: {}, error: err.message });
+        });
 }
 
 // Send message to content script with error handling

@@ -81,6 +81,11 @@ temp/
 _metadata/
 upgrade/
 
+# Agent skills registry (local, not for git)
+.atl/
+.agents/
+skills-lock.json
+
 # Python (if any scripts)
 __pycache__/
 *.py[cod]

@@ -100,11 +100,46 @@
         // Language
         'lang.switch':  { en: 'ES', es: 'EN' },
         'lang.tooltip': { en: 'Switch to Spanish', es: 'Cambiar a Inglés' },
+
+        // About tab
+        'about.title':       { en: 'Canopy Ruler', es: 'Canopy Ruler' },
+        'about.tagline':     { en: 'Web inspector for designers and developers.', es: 'Inspector web para diseñadores y desarrolladores.' },
+        'about.description': { en: 'Explore and debug web interfaces with precision measurement tools. Inspect elements, extract CSS, identify fonts, capture screenshots and analyze the color palette of any page — all from a floating toolbar that doesn\'t interrupt your workflow.', es: 'Explora y depura interfaces web con herramientas de medición de precisión. Inspecciona elementos, extrae CSS, identifica tipografías, captura pantallas y analiza la paleta de colores de cualquier página — todo desde una barra flotante que no interrumpe tu flujo de trabajo.' },
+        'about.author':      { en: 'Gustavo Gutiérrez', es: 'Gustavo Gutiérrez' },
+        'about.location':    { en: 'Bogotá, Colombia', es: 'Bogotá, Colombia' },
+        'about.linkedin':    { en: 'LinkedIn', es: 'LinkedIn' },
+        'about.footer':      { en: 'Made with ❤️ in Colombia · Open source', es: 'Hecho con ❤️ en Colombia · Código abierto' },
+        'about.donate':      { en: 'Donate with PayPal', es: 'Donar con PayPal' },
+        'about.donateMsg':   { en: 'Your support helps keep this tool free and open source', es: 'Tu apoyo ayuda a mantener esta herramienta gratuita y de código abierto' },
+        'about.tags': [
+            { en: 'CSS Inspection', es: 'Inspección CSS' },
+            { en: 'Box Model', es: 'Modelo de Caja' },
+            { en: 'WhatFont', es: 'WhatFont' },
+            { en: 'Color Palette', es: 'Paleta de Colores' },
+            { en: 'Rulers', es: 'Reglas' },
+            { en: 'Measurement', es: 'Medición' },
+            { en: 'X-Ray', es: 'X-Ray' },
+            { en: 'PNG Capture', es: 'Captura PNG' },
+            { en: 'Color Picker', es: 'Selector de Color' },
+            { en: 'Grid', es: 'Grid' },
+            { en: 'CSS Breakpoints', es: 'Breakpoints CSS' },
+            { en: 'Responsive Design', es: 'Diseño Responsive' },
+            { en: 'Export CSV', es: 'Exportar CSV' },
+            { en: 'Font Download', es: 'Descarga de Fuentes' },
+            { en: 'Tech Detection', es: 'Detección de Tecnologías' },
+            { en: 'English / Spanish', es: 'Inglés / Español' },
+        ],
     };
 
     function t(key) {
         var msg = _messages[key];
         if (!msg) return key;
+        // Handle array-based translations (e.g., tags)
+        if (Array.isArray(msg)) {
+            return msg.map(function(item) {
+                return item[_lang] || item.en || '';
+            });
+        }
         return msg[_lang] || msg.en || key;
     }
 
@@ -133,6 +168,7 @@
         updateActionButtons();
         updatePageLabels();
         updateLangButton();
+        renderAboutTab();
     }
 
     function updateLangButton() {
@@ -206,6 +242,16 @@
     }
 
     function setupEventListeners() {
+        // Detect panel being closed by Chrome's built-in close button
+        // Use runtime.sendMessage for reliability during beforeunload
+        window.addEventListener('beforeunload', function() {
+            if (!isExtensionClosed) {
+                try {
+                    chrome.runtime.sendMessage({ action: 'panelClosedByUser' });
+                } catch(e) {}
+            }
+        });
+
         // Listen for messages from content script
         chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             if (request.action === 'elementSelected') {
@@ -223,6 +269,11 @@
                 isInspecting = false;
                 updateUI();
                 updateInspectingState();
+                // Notify content script that panel is being closed
+                sendToContent({ action: 'panelClosedByUser' });
+                // Actually close the side panel window after a brief delay
+                // so the message has time to reach the content script
+                setTimeout(function() { window.close(); }, 100);
             }
         });
 
@@ -905,15 +956,60 @@
     }
 
     function updateInspectingState() {
-        const btn = document.getElementById('btn-inspect');
-        if (!btn) return;
+        var btnInspect = document.getElementById('btn-inspect');
+        if (btnInspect) {
+            if (isInspecting) {
+                btnInspect.classList.add('active');
+                btnInspect.title = 'Stop Inspecting';
+            } else {
+                btnInspect.classList.remove('active');
+                btnInspect.title = 'Start Inspecting';
+            }
+        }
+    }
 
-        if (isInspecting) {
-            btn.classList.add('active');
-            btn.title = 'Stop Inspecting';
-        } else {
-            btn.classList.remove('active');
-            btn.title = 'Start Inspecting';
+    function renderAboutTab() {
+        var el;
+        // Dynamic version from manifest
+        el = document.getElementById('about-version');
+        if (el) {
+            try {
+                var manifest = chrome.runtime.getManifest();
+                el.textContent = 'v' + manifest.version;
+            } catch(e) {
+                el.textContent = 'v1.0.1';
+            }
+        }
+        el = document.getElementById('about-tagline');
+        if (el) el.textContent = t('about.tagline');
+        el = document.getElementById('about-description');
+        if (el) el.textContent = t('about.description');
+        el = document.getElementById('about-author');
+        if (el) el.textContent = t('about.author');
+        el = document.getElementById('about-location');
+        if (el) el.textContent = t('about.location');
+        el = document.getElementById('about-linkedin-label');
+        if (el) el.textContent = t('about.linkedin');
+        el = document.getElementById('about-footer');
+        if (el) el.textContent = t('about.footer');
+        el = document.getElementById('about-donate-btn');
+        if (el) el.textContent = t('about.donate');
+        el = document.getElementById('about-donate-msg');
+        if (el) el.textContent = t('about.donateMsg');
+
+        // Render about tags
+        var tagsEl = document.getElementById('about-tags');
+        if (tagsEl) {
+            tagsEl.innerHTML = '';
+            var tags = t('about.tags');
+            if (tags && tags.length) {
+                tags.forEach(function(tag) {
+                    var span = document.createElement('span');
+                    span.className = 'about-tag';
+                    span.textContent = tag;
+                    tagsEl.appendChild(span);
+                });
+            }
         }
     }
 

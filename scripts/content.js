@@ -8,7 +8,7 @@
     var _lang = 'en';
     var _messages = {
         // Dock buttons
-        'dock.panel':       { en: 'Toggle Side Panel',            es: 'Alternar Panel Lateral' },
+        'dock.panel':       { en: 'Side Panel',                     es: 'Panel Lateral' },
         'dock.inspect':     { en: 'Inspect (Alt+Shift+S)',        es: 'Inspeccionar (Alt+Shift+S)' },
         'dock.find':        { en: 'Find Element',                 es: 'Buscar Elemento' },
         'dock.xray':        { en: 'X-Ray Mode',                   es: 'Modo Rayos X' },
@@ -16,13 +16,14 @@
         'dock.distance':    { en: 'Measure Distance',             es: 'Medir Distancia' },
         'dock.pagerulers':  { en: 'Page Rulers',                  es: 'Reglas de Página' },
         'dock.grid':        { en: 'Grid Overlay',                 es: 'Cuadrícula' },
+        'dock.draw':        { en: 'Draw & Annotate',               es: 'Dibujar y Anotar' },
         'dock.eyedropper':  { en: 'Color Picker',                 es: 'Selector de Color' },
         'dock.screenshot':  { en: 'Screenshot',                   es: 'Captura de Pantalla' },
         'dock.viewport':    { en: 'Viewport Info',                es: 'Info de Viewport' },
         'dock.whatfont':    { en: 'WhatFont',                     es: 'WhatFont' },
         'dock.breakpoints': { en: 'CSS Breakpoints',              es: 'Breakpoints CSS' },
         'dock.responsive':  { en: 'Responsive Design',            es: 'Diseño Responsive' },
-        'dock.close':       { en: 'Close Extension',              es: 'Cerrar Extensión' },
+        'dock.close':       { en: 'Close Canopy Ruler',             es: 'Cerrar Canopy Ruler' },
         'dock.lang':        { en: 'Switch to Spanish',            es: 'Cambiar a Inglés' },
 
         // Toasts
@@ -45,6 +46,21 @@
         'toast.responsive':       { en: 'Responsive mode active.',                  es: 'Modo responsive activo.' },
         'toast.find':             { en: 'Type a CSS selector and press Enter.',     es: 'Escribe un selector CSS y presiona Enter.' },
         'toast.deleted':          { en: 'Element deleted.',                          es: 'Elemento eliminado.' },
+
+        // Draw mode
+        'draw.rect':     { en: 'Rectangle',        es: 'Recuadro' },
+        'draw.line':     { en: 'Line',             es: 'Línea' },
+        'draw.arrow':    { en: 'Arrow',            es: 'Flecha' },
+        'draw.text':     { en: 'Text / Sticky Note', es: 'Texto / Nota adhesiva' },
+        'draw.laser':    { en: 'Laser Pointer',    es: 'Puntero Láser' },
+        'draw.undo':     { en: 'Undo',             es: 'Deshacer' },
+        'draw.clear':    { en: 'Clear All',        es: 'Limpiar Todo' },
+        'draw.done':     { en: 'Finish Drawing',   es: 'Terminar Dibujo' },
+        'draw.color':    { en: 'Color',            es: 'Color' },
+        'draw.stroke':   { en: 'Stroke Width',     es: 'Grosor' },
+        'draw.fill':     { en: 'Fill Opacity',     es: 'Opacidad de Relleno' },
+        'draw.activate': { en: 'Draw: Select a tool and color, then draw on the page', es: 'Dibujo: Selecciona herramienta y color, luego dibuja en la página' },
+        'draw.marker':   { en: 'Highlighter / Marker', es: 'Marcador / Resaltador' },
 
         // WhatFont
         'whatfont.exit':      { en: 'Exit WhatFont', es: 'Salir de WhatFont' },
@@ -153,6 +169,19 @@
     var isWhatFontMode = false;
     var whatFontTooltip = null;
     var whatFontPopovers = [];
+    var isDrawMode = false;
+    var drawOverlay = null;
+    var drawToolbar = null;
+    var drawShape = 'rect'; // 'rect', 'line', 'arrow'
+    var drawColor = '#ff0000';
+    var drawStrokeWidth = 3;
+    var drawFillOpacity = 0.2;
+    var drawStartX = 0;
+    var drawStartY = 0;
+    var drawCurrent = null;
+    var drawShapes = [];
+    var drawLaser = null;
+    var drawMarkerPoints = [];
 
     function log(msg) {
         console.log('[Canopy Ruler]', msg);
@@ -192,6 +221,8 @@
         document.addEventListener('click', onClick, true);
         document.addEventListener('keydown', onKeyDown, true);
         document.addEventListener('mousemove', onMouseMove, true);
+        document.addEventListener('mousedown', onMouseDown, true);
+        document.addEventListener('mouseup', onMouseUp, true);
         
         // Close panel when switching tabs or navigating away
         document.addEventListener('visibilitychange', function() {
@@ -211,9 +242,16 @@
         
         chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
             if (msg.action === 'startInspecting') {
-                startInspecting();
+                // Activate inspection if not already active
+                if (!isInspecting) {
+                    toggleInspect();
+                }
             }
             if (msg.action === 'stopInspecting') {
+                // Deactivate inspection if active
+                if (isInspecting) {
+                    toggleInspect();
+                }
                 clearAll();
                 panelOpen = false;
                 safeSendMessage({ action: 'closeSidePanel' });
@@ -236,8 +274,9 @@
                 }
             }
             if (msg.action === 'getPageInfo') {
-                var pageInfo = getPageInfo();
-                sendResponse(pageInfo);
+                getPageInfo(function(pageInfo) {
+                    sendResponse(pageInfo);
+                });
                 return true;
             }
             if (msg.action === 'deleteElement') {
@@ -249,6 +288,10 @@
                     sendToPanel(null);
                     showToast('Element deleted');
                 }
+            }
+            if (msg.action === 'panelClosedByUser') {
+                panelOpen = false;
+                updateDockButtons();
             }
         });
     }
@@ -273,7 +316,18 @@
             'viewport': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM80,184a8,8,0,0,1,0-16h96a8,8,0,0,1,0,16Z"/></svg>',
             'text-t': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M64,56V200a8,8,0,0,0,16,0V136h56v64a8,8,0,0,0,16,0V56a8,8,0,0,0-8-8H72A8,8,0,0,0,64,56Zm16,8h56v56H80Z"/></svg>',
             'download': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M213.66,122.34l-80,80a8,8,0,0,1-11.32,0l-80-80a8,8,0,0,1,11.32-11.32L120,180.69V40a8,8,0,0,1,16,0V180.69l66.34-69.67a8,8,0,0,1,11.32,11.32ZM216,200H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/></svg>',
-            'globe': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM101.63,168h52.74C149.08,188.48,138.84,204.87,128,215.61,117.16,204.87,106.92,188.48,101.63,168ZM98.71,152C95.29,137.17,94,122.56,94,128s1.29,9.17,4.71,24Zm58.58,0h-58.58c3.42-14.83,4.71-29.44,4.71-24s-1.29-9.17-4.71-24Zm-56-16C97.87,120.83,96,107.83,96,96a32,32,0,0,1,64,0c0,11.83-1.87,24.83-5.29,40ZM40,128a87.62,87.62,0,0,1,3.33-24H81.3c-3.37,7.72-5.3,16.17-5.3,24s1.93,16.28,5.3,24H43.33A87.62,87.62,0,0,1,40,128Zm76.69,56C98.91,174.49,85,163.22,73.18,148H52.4A87.86,87.86,0,0,0,116.69,184ZM128,216a87.89,87.89,0,0,0,55.6-20H146.6C158.42,207.93,143.49,213.79,128,216Zm55.6-36H146.6c8.08-10.55,13.84-22.2,17.13-32.63A87.53,87.53,0,0,0,140.22,104h41.08c4.14,7.27,6.7,15.38,6.7,24a47.8,47.8,0,0,1-4.4,20ZM183.6,88H140.22a87.53,87.53,0,0,0,23.51-43.37C152.76,55.66,141.17,71.51,134.7,88h-13.4C109.84,51.31,121.27,43.55,128,40c6.73,3.55,18.16,11.31,6.7,48Zm19.42,60h37.96a87.86,87.86,0,0,0,0-40H203c3.37,7.72,5.3,16.17,5.3,24A47.8,47.8,0,0,1,203,148Z"/></svg>'
+            'globe': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM101.63,168h52.74C149.08,188.48,138.84,204.87,128,215.61,117.16,204.87,106.92,188.48,101.63,168ZM98.71,152C95.29,137.17,94,122.56,94,128s1.29,9.17,4.71,24Zm58.58,0h-58.58c3.42-14.83,4.71-29.44,4.71-24s-1.29-9.17-4.71-24Zm-56-16C97.87,120.83,96,107.83,96,96a32,32,0,0,1,64,0c0,11.83-1.87,24.83-5.29,40ZM40,128a87.62,87.62,0,0,1,3.33-24H81.3c-3.37,7.72-5.3,16.17-5.3,24s1.93,16.28,5.3,24H43.33A87.62,87.62,0,0,1,40,128Zm76.69,56C98.91,174.49,85,163.22,73.18,148H52.4A87.86,87.86,0,0,0,116.69,184ZM128,216a87.89,87.89,0,0,0,55.6-20H146.6C158.42,207.93,143.49,213.79,128,216Zm55.6-36H146.6c8.08-10.55,13.84-22.2,17.13-32.63A87.53,87.53,0,0,0,140.22,104h41.08c4.14,7.27,6.7,15.38,6.7,24a47.8,47.8,0,0,1-4.4,20ZM183.6,88H140.22a87.53,87.53,0,0,0,23.51-43.37C152.76,55.66,141.17,71.51,134.7,88h-13.4C109.84,51.31,121.27,43.55,128,40c6.73,3.55,18.16,11.31,6.7,48Zm19.42,60h37.96a87.86,87.86,0,0,0,0-40H203c3.37,7.72,5.3,16.17,5.3,24A47.8,47.8,0,0,1,203,148Z"/></svg>',
+            'pencil-line': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M227.32,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31l83.67-83.66,3.48,13.9-36.8,36.79a8,8,0,0,0,11.31,11.32l40-40a8,8,0,0,0,2.11-7.6l-6.9-27.61L227.32,96A16,16,0,0,0,227.32,73.37ZM192,108.69,147.32,64l24-24L216,84.69Z"/></svg>',
+            'square': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Zm0,176H48V48H208V208Z"/></svg>',
+            'line-segment': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M214.64,86.62l-128,128a8,8,0,0,1-11.32,0l-48-48a8,8,0,0,1,11.32-11.32L81,197.66,203.32,75.3a8,8,0,0,1,11.32,11.32Z"/></svg>',
+            'arrow-right': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg>',
+            'text-t': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M208,56V88a8,8,0,0,1-16,0V64H136V192h24a8,8,0,0,1,0,16H96a8,8,0,0,1,0-16h24V64H64V88a8,8,0,0,1-16,0V56a8,8,0,0,1,8-8H200A8,8,0,0,1,208,56Z"/></svg>',
+            'arrow-arc-left': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M232,184a8,8,0,0,1-16,0A88,88,0,0,0,67.47,120.16l26.19,26.18a8,8,0,0,1-11.32,11.32l-40-40a8,8,0,0,1,0-11.32l40-40a8,8,0,0,1,11.32,11.32L67.47,103.84A104,104,0,0,1,232,184Z"/></svg>',
+            'trash': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"/></svg>',
+            'check': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>',
+            'minus': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z"/></svg>',
+            'laser-pointer': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 1000 1000" fill="currentColor"><path d="M168.68 915.68A41.76 41.76 0 0 1 139 903.37L96.63 861a42 42 0 0 1 0-59.44L486.82 411.4a42 42 0 0 1 59.44 0l42.34 42.34a42.09 42.09 0 0 1 0 59.44L198.4 903.37a41.75 41.75 0 0 1-29.72 12.31m-7.09-34.93a10.06 10.06 0 0 0 14.19 0L566 490.55a10 10 0 0 0 0-14.19L523.64 434a10 10 0 0 0-14.19 0l-390.2 390.22a10.06 10.06 0 0 0 0 14.19z"/><path d="M556.12 459.88a16 16 0 0 1-11.32-27.31l214.84-214.83a16 16 0 1 1 22.62 22.62L567.43 455.2a16 16 0 0 1-11.31 4.68m-26.9 106.05a16 16 0 0 1-11.32-4.68l-79.15-79.15a16 16 0 0 1 22.63-22.63l79.15 79.15a16 16 0 0 1-11.31 27.31M234.82 861a16 16 0 0 1-11.31-4.68l-79.15-79.15A16 16 0 0 1 167 754.53l79.15 79.15A16 16 0 0 1 234.82 861m77.03-156.52a16 16 0 0 1-11.31-27.31L361.73 616a16 16 0 1 1 22.62 22.62l-61.19 61.2a16 16 0 0 1-11.31 4.66M816.4 199.6a16 16 0 0 1-11.31-27.32l43-43a16 16 0 0 1 22.63 22.63l-43 43a15.94 15.94 0 0 1-11.32 4.69m83.92 55.76H839.5a16 16 0 0 1 0-32h60.82a16 16 0 0 1 0 32m-40.91 98.77a15.92 15.92 0 0 1-11.31-4.69l-43-43a16 16 0 1 1 22.63-22.62l43 43a16 16 0 0 1-11.32 27.31M704.88 199.6a15.92 15.92 0 0 1-11.31-4.69l-43-43a16 16 0 1 1 22.62-22.63l43 43a16 16 0 0 1-11.31 27.32m55.76-23.1a16 16 0 0 1-16-16V99.68a16 16 0 1 1 32 0v60.82a16 16 0 0 1-16 16"/></svg>',
+            'highlighter': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M253.66,106.34a8,8,0,0,0-11.32,0L192,156.69,107.31,72l50.35-50.34a8,8,0,1,0-11.32-11.32L96,60.69A16,16,0,0,0,93.18,79.5L72,100.69a16,16,0,0,0,0,22.62L76.69,128,18.34,186.34a8,8,0,0,0,3.13,13.25l72,24A7.88,7.88,0,0,0,96,224a8,8,0,0,0,5.66-2.34L136,187.31l4.69,4.69a16,16,0,0,0,22.62,0l21.19-21.18A16,16,0,0,0,203.31,168l50.35-50.34A8,8,0,0,0,253.66,106.34ZM93.84,206.85l-55-18.35L88,139.31,124.69,176ZM152,180.69,83.31,112,104,91.31,172.69,160Z"/></svg>'
         };
         return icons[name] || '';
     }
@@ -304,6 +358,7 @@
             { id: 'dock-grid', icon: getPhosphorIcon('grid-four'), titleKey: 'dock.grid', action: toggleGrid, group: 'measure' },
             { id: 'dock-eyedropper', icon: getPhosphorIcon('eyedropper'), titleKey: 'dock.eyedropper', action: toggleEyedropper, group: 'tools' },
             { id: 'dock-screenshot', icon: getPhosphorIcon('camera'), titleKey: 'dock.screenshot', action: takeScreenshot, group: 'tools' },
+            { id: 'dock-draw', icon: getPhosphorIcon('pencil-line'), titleKey: 'dock.draw', action: toggleDrawMode, group: 'tools' },
             { id: 'dock-viewport', icon: getPhosphorIcon('viewport'), titleKey: 'dock.viewport', action: toggleViewportInfo, group: 'tools' },
             { id: 'dock-whatfont', icon: getPhosphorIcon('text-t'), titleKey: 'dock.whatfont', action: toggleWhatFont, group: 'tools' },
             { id: 'dock-breakpoints', icon: getPhosphorIcon('devices'), titleKey: 'dock.breakpoints', action: toggleBreakpoints, group: 'layout' },
@@ -375,7 +430,28 @@
     // ===== SCREENSHOT =====
     function takeScreenshot() {
         showToast('Capturing screenshot...');
-        safeSendMessage({ action: 'captureScreenshot' });
+        
+        // Save original display values
+        var dockDisplay = dock ? dock.style.display : null;
+        var toolbarDisplay = drawToolbar ? drawToolbar.style.display : null;
+        var laserDisplay = drawLaser ? drawLaser.style.display : null;
+        
+        // Hide UI elements for clean screenshot
+        if (dock) dock.style.display = 'none';
+        if (drawToolbar) drawToolbar.style.display = 'none';
+        if (drawLaser) drawLaser.style.display = 'none';
+        
+        // Delay capture to ensure DOM is updated
+        setTimeout(function() {
+            safeSendMessage({ action: 'captureScreenshot' });
+            
+            // Restore UI after capture
+            setTimeout(function() {
+                if (dock && dockDisplay !== 'none') dock.style.display = dockDisplay;
+                if (drawToolbar && toolbarDisplay !== 'none') drawToolbar.style.display = toolbarDisplay;
+                if (drawLaser && laserDisplay !== 'none') drawLaser.style.display = laserDisplay;
+            }, 500);
+        }, 100);
     }
 
     // ===== EYEDROPPER =====
@@ -399,6 +475,18 @@
     function showEyedropperPreview(x, y, color) {
         removeEyedropperPreview();
         
+        // Ensure color is a valid hex
+        if (!color || color === 'transparent') {
+            color = '#808080';
+        }
+        if (color.charAt(0) !== '#') {
+            color = '#' + color;
+        }
+        // Truncate to RRGGBB if RGBA hex
+        if (color.length > 7) {
+            color = color.substring(0, 7);
+        }
+        
         eyedropperPreview = document.createElement('div');
         eyedropperPreview.style.cssText = 'position:fixed;z-index:2147483649;pointer-events:none;' +
             'left:' + (x + 15) + 'px;top:' + (y + 15) + 'px;' +
@@ -406,7 +494,8 @@
             'font-size:13px;font-family:monospace;border:2px solid ' + color + ';' +
             'box-shadow:0 4px 12px rgba(0,0,0,0.3);';
         
-        eyedropperPreview.innerHTML = '<div style="width:24px;height:24px;background:' + color + ';border-radius:4px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.3);"></div>' +
+        eyedropperPreview.innerHTML = '<div style="background:#fff;border-radius:5px;padding:2px;margin-bottom:6px;display:inline-block;">' +
+            '<div style="width:28px;height:28px;background:' + color + ';border-radius:3px;border:1px solid rgba(0,0,0,0.2);"></div></div>' +
             '<div style="font-weight:600;">' + color + '</div>' +
             '<div style="font-size:10px;opacity:0.7;margin-top:2px;">Copied to clipboard</div>';
         
@@ -516,6 +605,7 @@
         isEyedropperMode = false;
         isFindMode = false;
         isViewportMode = false;
+        isDrawMode = false;
         
         // Deactivate WhatFont
         deactivateWhatFont();
@@ -539,6 +629,13 @@
         hideBreakpoints();
         hideFindOverlay();
         hideViewportInfo();
+        // Draw mode cleanup
+        isDrawMode = false;
+        if (drawOverlay) { drawOverlay.remove(); drawOverlay = null; }
+        if (drawToolbar) { drawToolbar.remove(); drawToolbar = null; }
+        drawShapes.forEach(function(s) { if (s.el) s.el.remove(); });
+        drawShapes = [];
+        drawCurrent = null;
         document.body.style.cursor = '';
         sendToPanel(null);
         
@@ -2028,6 +2125,10 @@
         hideFindOverlay();
         clearXRayOutlines();
         clearRulers();
+        if (drawOverlay) { drawOverlay.remove(); drawOverlay = null; }
+        if (drawToolbar) { drawToolbar.remove(); drawToolbar = null; }
+        drawCurrent = null;
+        drawShapes = [];
         if (distanceLine) { distanceLine.remove(); distanceLine = null; }
         if (distanceLabel) { distanceLabel.remove(); distanceLabel = null; }
         clearDistanceLines();
@@ -2126,7 +2227,8 @@
             'dock-breakpoints': isBreakpointsMode,
             'dock-responsive': isResponsiveMode,
             'dock-viewport': isViewportMode,
-            'dock-whatfont': isWhatFontMode
+            'dock-whatfont': isWhatFontMode,
+            'dock-draw': isDrawMode
         };
 
         var tooltipKeys = {
@@ -2142,6 +2244,7 @@
             'dock-screenshot': 'dock.screenshot',
             'dock-viewport': 'dock.viewport',
             'dock-whatfont': 'dock.whatfont',
+            'dock-draw': 'dock.draw',
             'dock-breakpoints': 'dock.breakpoints',
             'dock-responsive': 'dock.responsive',
             'dock-lang': 'dock.lang',
@@ -2192,7 +2295,26 @@
     }
 
     // ===== EVENT HANDLERS =====
+    function onMouseDown(e) {
+        if (isDrawMode) {
+            onDrawMouseDown(e);
+            return;
+        }
+    }
+
+    function onMouseUp(e) {
+        if (isDrawMode) {
+            onDrawMouseUp(e);
+            return;
+        }
+    }
+
     function onMouseMove(e) {
+        // Draw mode takes priority
+        if (isDrawMode) {
+            onDrawMouseMove(e);
+            return;
+        }
         if (isRulerMode && rulerStart && e.buttons === 1) {
             if (tempRuler) tempRuler.remove();
             tempRuler = createRuler(rulerStart.x, rulerStart.y, e.clientX, e.clientY);
@@ -3089,7 +3211,7 @@
         return { h: h * 360, s: s * 100, l: l * 100 };
     }
 
-    function getPageInfo() {
+    function getPageInfo(callback) {
         var metaTags = [];
         var headTags = [];
         var technologies = detectTechnologies();
@@ -3131,7 +3253,7 @@
             headTags.push({ name: 'canonical', value: canonical.getAttribute('href') || '' });
         }
 
-        return {
+        var result = {
             title: title,
             description: description,
             url: url,
@@ -3140,13 +3262,139 @@
             technologies: technologies,
             colors: getPageColors()
         };
+
+        // Fetch server headers asynchronously via background
+        var called = false;
+        function finish() {
+            if (!called) { called = true; if (callback) callback(result); }
+        }
+
+        try {
+            chrome.runtime.sendMessage({ action: 'fetchServerHeaders', url: url }, function(serverInfo) {
+                if (!chrome.runtime.lastError && serverInfo && serverInfo.headers) {
+                    detectServerTechnologies(result.technologies, serverInfo.headers, url);
+                }
+                finish();
+            });
+        } catch(e) {
+            finish();
+        }
+
+        // Fallback: if no response in 3 seconds, return without server info
+        setTimeout(finish, 3000);
+    }
+
+    function detectServerTechnologies(technologies, headers, url) {
+        function addS(cat, name) {
+            if (!technologies[cat]) technologies[cat] = [];
+            if (technologies[cat].indexOf(name) === -1) {
+                technologies[cat].push(name);
+            }
+        }
+
+        // Server header — web server
+        var server = headers['server'] || '';
+        if (server) {
+            var serverLower = server.toLowerCase();
+            if (serverLower.indexOf('nginx') !== -1) {
+                var nginxVer = (server.match(/nginx\/([\d.]+)/i) || [])[1] || '';
+                addS('Servidor Web', 'Nginx' + (nginxVer ? ' ' + nginxVer : ''));
+                addS('Proxy reverso', 'Nginx' + (nginxVer ? ' ' + nginxVer : ''));
+            }
+            if (serverLower.indexOf('litespeed') !== -1) {
+                addS('Servidor Web', 'LiteSpeed');
+            }
+            if (serverLower.indexOf('apache') !== -1) {
+                var apacheVer = (server.match(/apache\/([\d.]+)/i) || [])[1] || '';
+                addS('Servidor Web', 'Apache' + (apacheVer ? ' ' + apacheVer : ''));
+            }
+            if (serverLower.indexOf('cloudflare') !== -1) {
+                addS('CDN', 'Cloudflare');
+            }
+            if (serverLower.indexOf('hostinger') !== -1) {
+                addS('Alojamiento', 'Hostinger');
+            }
+        }
+
+        // X-Powered-By — backend language/framework
+        var poweredBy = headers['x-powered-by'] || '';
+        if (poweredBy) {
+            var phpMatch = poweredBy.match(/PHP\/([\d.]+)/i);
+            if (phpMatch) {
+                addS('Lenguajes de Programación', 'PHP ' + phpMatch[1]);
+            } else if (poweredBy.toLowerCase().indexOf('php') !== -1) {
+                addS('Lenguajes de Programación', 'PHP');
+            }
+            if (poweredBy.toLowerCase().indexOf('express') !== -1) {
+                addS('Framework Web', 'Express');
+                addS('Servidor Web', 'Express');
+            }
+            if (poweredBy.toLowerCase().indexOf('node') !== -1 || poweredBy.toLowerCase().indexOf('node.js') !== -1) {
+                addS('Lenguajes de Programación', 'Node.js');
+            }
+        }
+
+        // LiteSpeed cache header
+        if (headers['x-litespeed-cache'] || headers['x-lsadc-cache']) {
+            addS('Servidor Web', 'LiteSpeed');
+        }
+
+        // Hostinger
+        if (headers['x-hostinger'] || headers['hostinger'] || headers['x-hpanel'] ||
+            (server && server.toLowerCase().indexOf('hostinger') !== -1)) {
+            addS('Alojamiento', 'Hostinger');
+        }
+
+        // PHP session cookie
+        var setCookie = headers['set-cookie'] || '';
+        if (setCookie.toLowerCase().indexOf('phpsessid') !== -1) {
+            addS('Lenguajes de Programación', 'PHP');
+        }
+
+        // Cloudflare via headers
+        if (headers['cf-ray'] || headers['cf-cache-status']) {
+            addS('CDN', 'Cloudflare');
+        }
+
+        // Netlify
+        if (headers['x-nf-request-id'] || headers['server'] && headers['server'].toLowerCase().indexOf('netlify') !== -1) {
+            addS('CDN', 'Netlify');
+        }
+
+        // Vercel
+        if (headers['x-vercel-id'] || headers['x-vercel-cache'] || headers['x-vercel-ip-country']) {
+            addS('CDN', 'Vercel');
+        }
+
+        // Link header for preconnect/preload hints
+        var linkHeader = headers['link'] || '';
+        if (linkHeader) {
+            // Priority hints (e.g., rel=preload)
+            if (linkHeader.indexOf('rel=preload') !== -1 || linkHeader.indexOf('rel=preconnect') !== -1) {
+                addS('Rendimiento', 'Priority Hints');
+            }
+        }
+
+        // Extract PHP version from X-Powered-By if not already added
+        if (poweredBy && !phpMatch) {
+            var phpVerMatch = poweredBy.match(/PHP\/([\d.]+)/i);
+            if (phpVerMatch) {
+                addS('Lenguajes de Programación', 'PHP ' + phpVerMatch[1]);
+            }
+        }
     }
 
     function detectTechnologies() {
         var categories = {};
+        // headHtml: only <head> — intentional tech choices (scripts, links, meta)
+        var headHtml = (document.head && document.head.innerHTML) || '';
+        // html: full document — only use for DOM structure markers, NOT text matching
         var html = document.documentElement.innerHTML;
         var scripts = Array.from(document.querySelectorAll('script[src]')).map(function(s) {
             return s.src.toLowerCase();
+        });
+        var links = Array.from(document.querySelectorAll('link[href]')).map(function(l) {
+            return l.href.toLowerCase();
         });
         
         function add(category, name) {
@@ -3156,193 +3404,324 @@
             }
         }
 
-        // ----- Analítica (Analytics) -----
-        if (html.includes('google-analytics') || html.includes('gtag') || scripts.some(function(s) {
-            return s.includes('google-analytics') || s.includes('gtag');
-        })) {
-            add('Analítica', 'Google Analytics');
-        }
-        if (html.includes('fbq(') || document.querySelector('script[src*="connect.facebook.net"]')) {
-            add('Analítica', 'Facebook Pixel');
-        }
-        if (html.includes('hotjar') || scripts.some(function(s) { return s.includes('hotjar'); })) {
-            add('Analítica', 'Hotjar');
-        }
-        if (html.includes('intercom') || scripts.some(function(s) { return s.includes('intercom'); })) {
-            add('Analítica', 'Intercom');
-        }
-        if (html.includes('clarity') || scripts.some(function(s) { return s.includes('clarity') || s.includes('clarity.ms'); })) {
-            add('Analítica', 'Microsoft Clarity');
-        }
-        if (html.includes('mixpanel') || scripts.some(function(s) { return s.includes('mixpanel'); })) {
-            add('Analítica', 'Mixpanel');
-        }
-        if (html.includes('amplitude') || scripts.some(function(s) { return s.includes('amplitude'); })) {
-            add('Analítica', 'Amplitude');
-        }
-        if (html.includes('kissmetrics') || scripts.some(function(s) { return s.includes('kissmetrics'); })) {
-            add('Analítica', 'Kissmetrics');
-        }
-        if (html.includes('mouseflow') || scripts.some(function(s) { return s.includes('mouseflow'); })) {
-            add('Analítica', 'Mouseflow');
-        }
-        if (html.includes('fullstory') || scripts.some(function(s) { return s.includes('fullstory'); })) {
-            add('Analítica', 'FullStory');
+        function scriptHas(pattern) {
+            return scripts.some(function(s) { return s.indexOf(pattern) !== -1; });
         }
 
-        // ----- Gestores de Etiquetas (Tag Managers) -----
-        if (html.includes('googletagmanager') || scripts.some(function(s) {
-            return s.includes('googletagmanager');
-        })) {
+        function linkHas(pattern) {
+            return links.some(function(l) { return l.indexOf(pattern) !== -1; });
+        }
+
+        function headHas(pattern) {
+            // Match only within <head> — intentional tech choices, not body content
+            return headHtml.indexOf(pattern) !== -1;
+        }
+
+        function metaHas(name, contentPattern) {
+            var el = document.querySelector('meta[name="' + name + '"][content*="' + contentPattern + '"]');
+            return !!el;
+        }
+
+        function inlineJsonHas(key) {
+            var jsonScripts = document.querySelectorAll('script[type="application/json"], script[data-page]');
+            for (var i = 0; i < jsonScripts.length; i++) {
+                if (jsonScripts[i].textContent.indexOf('"' + key + '"') !== -1) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // ===== Widget (Búsqueda / Search widgets) =====
+        // Algolia: detect only from script URLs, link preconnect, and inline JSON — NOT body text
+        var hasAlgolia = scriptHas('algolia') || linkHas('algolia') ||
+            inlineJsonHas('algolia') || inlineJsonHas('docsearch') ||
+            headHas('algolia');
+        var hasDocsearch = scriptHas('docsearch') || document.querySelector('[id*="docsearch"]') ||
+            document.querySelector('link[href*="docsearch"]');
+
+        if (hasAlgolia) {
+            add('Motor de Búsqueda', 'Algolia');
+        }
+        if (hasDocsearch) {
+            add('Widget', 'Algolia DocSearch');
+        }
+
+        // ===== Analítica =====
+        if (headHas('googletagmanager') || scriptHas('googletagmanager') || scriptHas('gtag')) {
+            add('Analítica', 'Google Analytics');
+            // GA4 — detected by measurement ID pattern G-XXXXXXXXXX
+            if (scriptHas('gtag/js?id=G-') || headHas('gtag/js?id=G-') || html.indexOf('gtag/js?id=G-') !== -1) {
+                add('Analítica', 'GA4');
+            }
+        }
+        if (scriptHas('google-analytics') || headHas('google-analytics')) {
+            add('Analítica', 'Google Analytics');
+        }
+        if (headHas('fbq(') || scriptHas('connect.facebook.net')) {
+            add('Analítica', 'Facebook Pixel');
+        }
+        if (scriptHas('hotjar') || headHas('hotjar')) {
+            add('Analítica', 'Hotjar');
+        }
+        if (scriptHas('intercom') || headHas('intercom')) {
+            add('Analítica', 'Intercom');
+        }
+        if (scriptHas('clarity') || headHas('clarity')) {
+            add('Analítica', 'Microsoft Clarity');
+        }
+        if (scriptHas('mixpanel') || headHas('mixpanel')) {
+            add('Analítica', 'Mixpanel');
+        }
+        if (scriptHas('amplitude') || headHas('amplitude')) {
+            add('Analítica', 'Amplitude');
+        }
+        if (scriptHas('kissmetrics')) {
+            add('Analítica', 'Kissmetrics');
+        }
+        if (scriptHas('mouseflow')) {
+            add('Analítica', 'Mouseflow');
+        }
+        if (scriptHas('fullstory')) {
+            add('Analítica', 'FullStory');
+        }
+        if (scriptHas('usefathom') || headHas('usefathom')) {
+            add('Analítica', 'Fathom');
+        }
+        if (scriptHas('posthog') || headHas('posthog')) {
+            add('Analítica', 'PostHog');
+        }
+
+        // ===== Gestores de Etiquetas =====
+        if (headHas('googletagmanager') || scriptHas('googletagmanager')) {
             add('Gestores de Etiquetas', 'Google Tag Manager');
         }
-        if (html.includes('tealium') || scripts.some(function(s) { return s.includes('tealium'); })) {
+        if (scriptHas('tealium') || headHas('tealium')) {
             add('Gestores de Etiquetas', 'Tealium');
         }
-        if (html.includes('adobetm') || html.includes('launch.dynamic') || scripts.some(function(s) { return s.includes('adobedtm') || s.includes('adobetm'); })) {
+        if (headHas('adobetm') || headHas('launch.dynamic') || scriptHas('adobedtm') || scriptHas('adobetm')) {
             add('Gestores de Etiquetas', 'Adobe Launch');
         }
-        if (html.includes('segment.com') || scripts.some(function(s) { return s.includes('segment') || s.includes('cdn.segment'); })) {
+        if (scriptHas('cdn.segment') || scriptHas('/segment') || headHas('segment.com')) {
             add('Gestores de Etiquetas', 'Segment');
         }
 
-        // ----- Framework JavaScript -----
-        if (html.includes('data-reactroot') || html.includes('data-reactid') || scripts.some(function(s) { return s.includes('react'); })) {
+        // ===== Framework JavaScript =====
+        if (html.indexOf('data-reactroot') !== -1 || html.indexOf('data-reactid') !== -1 ||
+            html.indexOf('__REACT_DEVTOOLS_GLOBAL_HOOK__') !== -1 ||
+            scriptHas('/react-dom') || scriptHas('/react.production') || scriptHas('/react.development')) {
             add('Framework JavaScript', 'React');
         }
-        if (html.includes('__VUE__') || scripts.some(function(s) { return s.includes('vue'); })) {
+        if (html.indexOf('__VUE__') !== -1 || html.indexOf('data-v-') !== -1 ||
+            scriptHas('/vue.') || scriptHas('/vue@') || scriptHas('vue.global')) {
             add('Framework JavaScript', 'Vue.js');
         }
-        if (html.includes('ng-version=') || html.includes('ng-app=') || html.includes('ng-controller=') || document.querySelector('[ng-app]') || document.querySelector('[data-ng-app]') || scripts.some(function(s) { return s.includes('/angular') || s.includes('angular.min') || s.includes('@angular'); })) {
+        if (html.indexOf('ng-version=') !== -1 || html.indexOf('ng-app=') !== -1 || html.indexOf('ng-controller=') !== -1 ||
+            document.querySelector('[ng-app]') || document.querySelector('[data-ng-app]') ||
+            scriptHas('/angular') || scriptHas('angular.min') || scriptHas('@angular')) {
             add('Framework JavaScript', 'Angular');
         }
-        if (html.includes('__next') || scripts.some(function(s) { return s.includes('/_next/') || s.includes('next/dist'); })) {
-            add('Framework JavaScript', 'Next.js');
+        if (html.indexOf('__next') !== -1 || scriptHas('/_next/') || scriptHas('next/dist')) {
+            var nextVersion = '';
+            // Try to extract version from __NEXT_DATA__ script tag
+            var nextData = document.getElementById('__NEXT_DATA__');
+            if (nextData) {
+                try {
+                    var data = JSON.parse(nextData.textContent);
+                    if (data && data.nextVersion) nextVersion = data.nextVersion;
+                } catch(e) {}
+            }
+            // Fallback: try to read version from build manifest path or meta
+            if (!nextVersion) {
+                var buildScript = document.querySelector('script[src*="/_next/static/"][src*="_ssgManifest"]');
+                if (buildScript) {
+                    var m = buildScript.src.match(/\/_next\/static\/([^/]+)\//);
+                    // This gives the build ID, not version — skip
+                }
+            }
+            add('Framework JavaScript', 'Next.js' + (nextVersion ? ' ' + nextVersion : ''));
         }
-        if (html.includes('__nuxt') || scripts.some(function(s) { return s.includes('nuxt'); })) {
+        if (html.indexOf('__nuxt') !== -1 || scriptHas('nuxt')) {
             add('Framework JavaScript', 'Nuxt.js');
         }
-        if (html.includes('__svelte') || html.includes('svelte-') || html.includes('data-sveltekit') || html.includes('\u003c!--xs--\u003e') || html.includes('<!--svelte') || scripts.some(function(s) { return s.includes('svelte'); })) {
+        if (html.indexOf('__svelte') !== -1 || html.indexOf('svelte-') !== -1 || html.indexOf('data-sveltekit') !== -1 ||
+            html.indexOf('<!--svelte') !== -1 || scriptHas('svelte')) {
             add('Framework JavaScript', 'Svelte');
         }
-        if (html.includes('ember.js') || html.includes('data-ember-') || html.includes('ember-application') || scripts.some(function(s) { return s.includes('ember.js') || s.includes('emberjs') || s.includes('/ember/'); })) {
+        if (html.indexOf('ember.js') !== -1 || html.indexOf('data-ember-') !== -1 || html.indexOf('ember-application') !== -1 ||
+            scriptHas('ember.js') || scriptHas('emberjs') || scriptHas('/ember/')) {
             add('Framework JavaScript', 'Ember.js');
         }
-        if (scripts.some(function(s) { return s.includes('backbone'); })) {
+        if (scriptHas('backbone')) {
             add('Librerías JavaScript', 'Backbone.js');
         }
-        if (html.includes('alpinejs') || scripts.some(function(s) { return s.includes('alpine'); })) {
+        if (html.indexOf('alpinejs') !== -1 || scriptHas('alpine')) {
             add('Framework JavaScript', 'Alpine.js');
         }
-        if (html.includes('data-astro-') || html.includes('astro-island') || html.includes('<!--astro:') || html.includes('data-astro-cid') || scripts.some(function(s) { return s.includes('/_astro/'); }) || document.querySelector('astro-island')) {
+        if (html.indexOf('data-astro-') !== -1 || html.indexOf('astro-island') !== -1 || html.indexOf('data-astro-cid') !== -1 ||
+            scriptHas('/_astro/') || document.querySelector('astro-island')) {
             add('Framework JavaScript', 'Astro');
-        } else if (scripts.some(function(s) { return s.includes('/_build/assets/') || s.includes('entry-client'); })) {
-            // Solid Start also uses /_build/assets/ and entry-client, so this is ambiguous
-            // Only add Astro if we also see Solid.js indicators since Astro can use Solid
-            if (html.includes('_$HY') || html.includes('solid-js')) {
-                add('Framework JavaScript', 'Astro + Solid');
-            } else {
-                add('Framework JavaScript', 'Solid Start');
-            }
+            add('Generador de sitios estáticos', 'Astro');
         }
-        if (html.includes('gatsby') || scripts.some(function(s) { return s.includes('gatsby'); })) {
+        if (scriptHas('gatsby') || html.indexOf('___GATSBY') !== -1) {
             add('Framework JavaScript', 'Gatsby');
         }
-        if (html.includes('preact') || scripts.some(function(s) { return s.includes('preact'); })) {
+        if (scriptHas('preact') || html.indexOf('__PREACT__') !== -1) {
             add('Framework JavaScript', 'Preact');
         }
-        if (html.includes('solid-js') || html.includes('_$HY') || scripts.some(function(s) { return s.includes('solid'); })) {
+        if (html.indexOf('solid-js') !== -1 || html.indexOf('_$HY') !== -1 || scriptHas('solid')) {
             add('Framework JavaScript', 'Solid.js');
         }
-        if (html.includes('qwik') || scripts.some(function(s) { return s.includes('qwik'); })) {
+        if (scriptHas('qwik') || html.indexOf('qwikevents') !== -1 || html.indexOf('qwikloader') !== -1) {
             add('Framework JavaScript', 'Qwik');
         }
-        if (html.includes('remix') || scripts.some(function(s) { return s.includes('remix'); })) {
+        if (scriptHas('@remix-run') || scriptHas('/remix/') || html.indexOf('__remixContext') !== -1 || html.indexOf('__remixManifest') !== -1) {
             add('Framework JavaScript', 'Remix');
         }
-
-        // ----- Librerías JavaScript -----
-        if (typeof jQuery !== 'undefined' || scripts.some(function(s) { return s.includes('jquery'); })) {
-            add('Librerías JavaScript', 'jQuery');
+        // Inertia.js — script tag or data-inertia attributes
+        if (scriptHas('inertia') || scriptHas('@inertiajs') ||
+            html.indexOf('data-inertia') !== -1 || document.querySelector('[data-inertia]')) {
+            add('Framework JavaScript', 'Inertia.js');
         }
-        if (scripts.some(function(s) { return s.includes('lodash'); })) {
+        // Angular version detection
+        var angularRoot = document.querySelector('[ng-version]');
+        if (angularRoot) {
+            var ngVersion = angularRoot.getAttribute('ng-version') || '';
+            if (ngVersion) {
+                add('Framework JavaScript', 'Angular ' + ngVersion);
+            }
+        }
+        // VitePress — static site generator built on Vite + Vue
+        if (metaHas('generator', 'VitePress') || headHas('VitePress') || html.indexOf('vitepress-theme') !== -1) {
+            add('Generador de sitios estáticos', 'VitePress');
+        }
+        // Vite — build tool (only if not already detected via VitePress)
+        if (scriptHas('/@vite') || scriptHas('vite/client') || (scriptHas('vite') && !metaHas('generator', 'VitePress'))) {
+            add('Miscelánea', 'Vite');
+        }
+
+        // ===== Librerías JavaScript =====
+        if (typeof jQuery !== 'undefined' || scriptHas('jquery')) {
+            var jqVersion = '';
+            if (typeof jQuery !== 'undefined' && jQuery.fn && jQuery.fn.jquery) {
+                jqVersion = ' ' + jQuery.fn.jquery;
+            }
+            add('Librerías JavaScript', 'jQuery' + jqVersion);
+        }
+        if (scriptHas('lodash')) {
             add('Librerías JavaScript', 'Lodash');
         }
-        if (scripts.some(function(s) { return s.includes('moment'); })) {
+        if (scriptHas('moment')) {
             add('Librerías JavaScript', 'Moment.js');
         }
-        if (scripts.some(function(s) { return s.includes('d3.js') || s.includes('d3.min') || s.includes('d3.v'); })) {
+        if (scriptHas('d3.js') || scriptHas('d3.min') || scriptHas('d3.v')) {
             add('Librerías JavaScript', 'D3.js');
         }
-        if (scripts.some(function(s) { return s.includes('chart') || s.includes('chartjs'); })) {
+        if (scriptHas('chart.js') || scriptHas('chartjs') || scriptHas('/chart')) {
             add('Librerías JavaScript', 'Chart.js');
         }
-        if (scripts.some(function(s) { return s.includes('three.js') || s.includes('three.min'); })) {
+        if (scriptHas('three.js') || scriptHas('three.min')) {
             add('Librerías JavaScript', 'Three.js');
         }
-        if (scripts.some(function(s) { return s.includes('gsap'); })) {
+        if (scriptHas('gsap')) {
             add('Librerías JavaScript', 'GSAP');
         }
-        if (scripts.some(function(s) { return s.includes('axios'); })) {
+        if (scriptHas('axios')) {
             add('Librerías JavaScript', 'Axios');
         }
-        if (scripts.some(function(s) { return s.includes('swiper'); })) {
+        if (scriptHas('swiper')) {
             add('Librerías JavaScript', 'Swiper');
         }
-        if (scripts.some(function(s) { return s.includes('framer-motion') || s.includes('framer'); }) || html.includes('framer-motion')) {
+        // Framer Motion — only match the specific package, not generic "framer" or "motion"
+        if (scriptHas('framer-motion') || html.indexOf('framer-motion') !== -1) {
             add('Librerías JavaScript', 'Framer Motion');
         }
-        if (scripts.some(function(s) { return s.includes('prism') || s.includes('prismjs'); })) {
+        if (scriptHas('prism') || scriptHas('prismjs')) {
             add('Librerías JavaScript', 'Prism.js');
         }
-        if (scripts.some(function(s) { return s.includes('highlight') || s.includes('highlightjs') || s.includes('hljs'); })) {
+        if (scriptHas('highlight') || scriptHas('highlightjs') || scriptHas('hljs')) {
             add('Librerías JavaScript', 'Highlight.js');
         }
-        if (scripts.some(function(s) { return s.includes('anime') || s.includes('animejs'); })) {
+        if (scriptHas('anime') || scriptHas('animejs')) {
             add('Librerías JavaScript', 'Anime.js');
         }
-        if (scripts.some(function(s) { return s.includes('popper') || s.includes('popperjs'); })) {
-            add('Librerías JavaScript', 'Popper.js');
-        }
-        if (scripts.some(function(s) { return s.includes('dayjs'); })) {
+        if (scriptHas('dayjs')) {
             add('Librerías JavaScript', 'Day.js');
         }
-        if (scripts.some(function(s) { return s.includes('date-fns'); })) {
+        if (scriptHas('date-fns')) {
             add('Librerías JavaScript', 'date-fns');
         }
-        if (scripts.some(function(s) { return s.includes('rxjs'); })) {
+        if (scriptHas('rxjs')) {
             add('Librerías JavaScript', 'RxJS');
         }
-        if (scripts.some(function(s) { return s.includes('socket.io') || s.includes('socketio'); })) {
+        if (scriptHas('socket.io') || scriptHas('socketio')) {
             add('Librerías JavaScript', 'Socket.IO');
         }
-        if (scripts.some(function(s) { return s.includes('core-js') || s.includes('corejs'); })) {
-            add('Librerías JavaScript', 'core-js');
+        if (scriptHas('core-js') || scriptHas('corejs')) {
+            var corejsVer = '';
+            var corejsMatch = html.match(/core-js[^?]*\?ver=([\d.]+)/);
+            if (corejsMatch) corejsVer = ' ' + corejsMatch[1];
+            add('Librerías JavaScript', 'core-js' + corejsVer);
         }
-        if (scripts.some(function(s) { return s.includes('zone.js') || s.includes('zonejs'); })) {
+        if (scriptHas('zone.js') || scriptHas('zonejs')) {
             add('Librerías JavaScript', 'Zone.js');
         }
-        if (scripts.some(function(s) { return s.includes('immutable') || s.includes('immutablejs'); })) {
+        if (scriptHas('immutable') || scriptHas('immutablejs')) {
             add('Librerías JavaScript', 'Immutable.js');
         }
-        if (scripts.some(function(s) { return s.includes('xstate'); })) {
+        if (scriptHas('xstate')) {
             add('Librerías JavaScript', 'XState');
         }
-        if (scripts.some(function(s) { return s.includes('i18next') || s.includes('i18n'); })) {
+        if (scriptHas('i18next') || scriptHas('i18n')) {
             add('Librerías JavaScript', 'i18next');
         }
-
-        // ----- UI Frameworks -----
-        if (scripts.some(function(s) { return s.includes('bootstrap'); }) || document.querySelector('link[href*="bootstrap"]')) {
-            add('UI Frameworks', 'Bootstrap');
+        if (scriptHas('owl.carousel') || scriptHas('owlcarousel')) {
+            add('Librerías JavaScript', 'OWL Carousel');
         }
-        if (document.querySelector('link[href*="tailwind"]') || html.includes('tailwind')) {
+        if (scriptHas('lit-html') || scriptHas('lit-element') || scriptHas('/lit/') ||
+            html.indexOf('lit-html') !== -1 || html.indexOf('lit-element') !== -1) {
+            if (scriptHas('lit-html') || html.indexOf('lit-html') !== -1) {
+                add('Librerías JavaScript', 'lit-html');
+            }
+            if (scriptHas('lit-element') || html.indexOf('lit-element') !== -1) {
+                add('Librerías JavaScript', 'lit-element');
+            }
+        }
+        // Popper (not Popper.js for brevity)
+        if (scriptHas('popper') || scriptHas('popperjs')) {
+            add('Librerías JavaScript', 'Popper');
+        }
+        if (scriptHas('masonry') || scriptHas('masonry-layout')) {
+            add('Librerías JavaScript', 'Masonry');
+        }
+        if (scriptHas('jquery-migrate') || scriptHas('jquery.migrate')) {
+            var jqmVer = '';
+            var jqmMatch = html.match(/jquery-migrate(?:\.min)?\.js\?ver=([\d.]+)/);
+            if (jqmMatch) jqmVer = ' ' + jqmMatch[1];
+            add('Librerías JavaScript', 'jQuery Migrate' + jqmVer);
+        }
+        if (scriptHas('isotope') || scriptHas('isotope-layout')) {
+            add('Librerías JavaScript', 'Isotope');
+        }
+
+        // ===== UI Frameworks =====
+        if (scriptHas('bootstrap') || document.querySelector('link[href*="bootstrap"]')) {
+            var bsVer = '';
+            var bsMatch = html.match(/bootstrap(?:\.min)?\.(?:css|js)\?ver=([\d.]+)/);
+            if (bsMatch) bsVer = ' ' + bsMatch[1];
+            else {
+                bsMatch = html.match(/bootstrap\/([\d.]+)\//);
+                if (bsMatch) bsVer = ' ' + bsMatch[1];
+            }
+            add('UI Frameworks', 'Bootstrap' + bsVer);
+        }
+        if (document.querySelector('link[href*="tailwind"]') || html.indexOf('tailwind') !== -1) {
             add('UI Frameworks', 'Tailwind CSS');
         }
         if (document.querySelector('link[href*="font-awesome"]') || document.querySelector('link[href*="fontawesome"]')) {
             add('UI Frameworks', 'Font Awesome');
         }
-        if (document.querySelector('link[href*="materialize"]') || scripts.some(function(s) { return s.includes('materialize'); })) {
+        if (document.querySelector('link[href*="materialize"]') || scriptHas('materialize')) {
             add('UI Frameworks', 'Materialize');
         }
         if (document.querySelector('link[href*="bulma"]')) {
@@ -3351,179 +3730,275 @@
         if (document.querySelector('link[href*="semantic-ui"]') || document.querySelector('link[href*="semanticui"]')) {
             add('UI Frameworks', 'Semantic UI');
         }
-        if (document.querySelector('link[href*="antd"]') || scripts.some(function(s) { return s.includes('antd'); })) {
+        if (document.querySelector('link[href*="antd"]') || scriptHas('antd')) {
             add('UI Frameworks', 'Ant Design');
         }
-        if (document.querySelector('link[href*="chakra"]') || scripts.some(function(s) { return s.includes('chakra'); })) {
+        if (document.querySelector('link[href*="chakra"]') || scriptHas('chakra')) {
             add('UI Frameworks', 'Chakra UI');
         }
-        if (html.includes('n-config-provider') || html.includes('n-popover') || scripts.some(function(s) { return s.includes('naive') || s.includes('naive-ui'); })) {
+        if (html.indexOf('n-config-provider') !== -1 || html.indexOf('n-popover') !== -1 || scriptHas('naive') || scriptHas('naive-ui')) {
             add('UI Frameworks', 'Naive UI');
         }
-        if (html.includes('v-menu') || html.includes('v-btn') || scripts.some(function(s) { return s.includes('vuetify'); })) {
+        if (html.indexOf('v-menu') !== -1 || html.indexOf('v-btn') !== -1 || scriptHas('vuetify')) {
             add('UI Frameworks', 'Vuetify');
         }
-        if (html.includes('data-mui') || scripts.some(function(s) { return s.includes('mui/material') || s.includes('@mui'); })) {
+        if (html.indexOf('data-mui') !== -1 || scriptHas('mui/material') || scriptHas('@mui')) {
             add('UI Frameworks', 'MUI (Material UI)');
         }
 
-        // ----- CDN / Hosting -----
-        if (scripts.some(function(s) { return s.includes('cloudflare') || s.includes('cloudflareinsights'); }) || html.includes('data-cf-beacon')) {
-            add('CDN / Hosting', 'Cloudflare');
+        // ===== CDN =====
+        if (scriptHas('cloudflareinsights') || html.indexOf('data-cf-beacon') !== -1) {
+            add('CDN', 'Cloudflare');
         }
-        if (document.querySelector('meta[name="generator"][content*="Vercel"]') || html.includes('vercel')) {
-            add('CDN / Hosting', 'Vercel');
+        // Cloudflare Turnstile (separate from CDN)
+        if (html.indexOf('turnstile') !== -1 || scriptHas('turnstile') || scriptHas('challenges.cloudflare') ||
+            inlineJsonHas('turnstileSiteKey') || inlineJsonHas('turnstile')) {
+            add('Seguridad', 'Cloudflare Turnstile');
         }
-        if (scripts.some(function(s) { return s.includes('netlify'); }) || html.includes('netlify')) {
-            add('CDN / Hosting', 'Netlify');
+        if (metaHas('generator', 'Vercel') || scriptHas('vercel') || linkHas('vercel')) {
+            add('CDN', 'Vercel');
         }
-        if (scripts.some(function(s) { return s.includes('aws') || s.includes('amazonaws') || s.includes('cloudfront'); })) {
-            add('CDN / Hosting', 'AWS');
+        if (scriptHas('netlify') || linkHas('netlify') || headHas('netlify') ||
+            typeof window.__netlify !== 'undefined' || html.indexOf('netlify-') !== -1) {
+            add('CDN', 'Netlify');
         }
-        if (scripts.some(function(s) { return s.includes('firebase'); })) {
-            add('CDN / Hosting', 'Firebase');
+        if (scriptHas('aws') || scriptHas('amazonaws') || scriptHas('cloudfront') ||
+            linkHas('amazonaws') || linkHas('cloudfront') ||
+            html.indexOf('s3.amazonaws.com') !== -1 || html.indexOf('cloudfront.net') !== -1) {
+            add('CDN', 'AWS');
+            if (scriptHas('cloudfront') || linkHas('cloudfront') || html.indexOf('cloudfront.net') !== -1) {
+                add('CDN', 'Amazon CloudFront');
+            }
         }
-        if (scripts.some(function(s) { return s.includes('supabase'); })) {
-            add('CDN / Hosting', 'Supabase');
+        if (scriptHas('firebase')) {
+            add('CDN', 'Firebase');
         }
-        if (scripts.some(function(s) { return s.includes('jsdelivr') || s.includes('jsdelvr'); })) {
-            add('CDN / Hosting', 'jsDelivr');
+        if (scriptHas('supabase')) {
+            add('CDN', 'Supabase');
         }
-        if (scripts.some(function(s) { return s.includes('unpkg.com'); })) {
-            add('CDN / Hosting', 'Unpkg');
+        if (scriptHas('jsdelivr') || scriptHas('jsdelvr')) {
+            add('CDN', 'jsDelivr');
         }
-        if (scripts.some(function(s) { return s.includes('cdnjs'); })) {
-            add('CDN / Hosting', 'CDNJS');
+        if (scriptHas('unpkg.com')) {
+            add('CDN', 'Unpkg');
         }
-        if (scripts.some(function(s) { return s.includes('googleapis.com'); })) {
-            add('CDN / Hosting', 'Google APIs');
+        if (scriptHas('cdnjs')) {
+            add('CDN', 'CDNJS');
+        }
+        // Google APIs — only CDN-hosted libraries, not fonts.googleapis.com
+        if (scriptHas('ajax.googleapis.com') || scriptHas('storage.googleapis.com') ||
+            scriptHas('apis.google.com/js/')) {
+            add('CDN', 'Google APIs');
+        }
+        // Bunny CDN / Fonts
+        if (scriptHas('bunny.net') || linkHas('bunny.net') || headHas('bunny.net') ||
+            document.querySelector('link[href*="bunny.net"]')) {
+            add('CDN', 'Bunny');
+            if (linkHas('fonts.bunny') || headHas('fonts.bunny') || document.querySelector('link[href*="fonts.bunny"]')) {
+                add('Tipografía', 'Bunny Fonts');
+            }
         }
 
-        // ----- Framework Web / CMS -----
-        if (html.includes('wp-content') || html.includes('wp-includes') || document.querySelector('meta[name="generator"][content*="WordPress"]')) {
+        // ===== Framework Web / CMS =====
+        if (html.indexOf('wp-content') !== -1 || html.indexOf('wp-includes') !== -1 || metaHas('generator', 'WordPress')) {
             add('Framework Web / CMS', 'WordPress');
+            // WordPress version from CSS/JS ?ver= parameter
+            var wpVerMatch = html.match(/wp-includes\/[^?]+\?ver=([\d.]+)/);
+            if (wpVerMatch) {
+                add('Framework Web / CMS', 'WordPress ' + wpVerMatch[1]);
+            }
+            // WooCommerce
+            if (html.indexOf('wp-content/plugins/woocommerce') !== -1 || linkHas('woocommerce') || scriptHas('woocommerce')) {
+                var wcVerMatch = html.match(/woocommerce[^?]+\?ver=([\d.]+)/);
+                add('Plugins de WordPress', 'WooCommerce' + (wcVerMatch ? ' ' + wcVerMatch[1] : ''));
+            }
+            // Contact Form 7
+            if (html.indexOf('wp-content/plugins/contact-form-7') !== -1 || linkHas('contact-form-7') || scriptHas('contact-form-7')) {
+                var cf7VerMatch = html.match(/contact-form-7[^?]+\?ver=([\d.]+)/);
+                add('Plugins de WordPress', 'Contact Form 7' + (cf7VerMatch ? ' ' + cf7VerMatch[1] : ''));
+            }
+            // Yoast SEO
+            if (html.indexOf('yoast') !== -1 || html.indexOf('wordpress-seo') !== -1 || linkHas('wordpress-seo') || scriptHas('wordpress-seo')) {
+                add('Plugins de WordPress', 'Yoast SEO');
+            }
+            // Ultimate GDPR / Cookie consent
+            if (html.indexOf('ct-ultimate-gdpr') !== -1 || linkHas('ct-ultimate-gdpr') || scriptHas('ct-ultimate-gdpr')) {
+                add('Plugins de WordPress', 'Ultimate GDPR & CCPA');
+            }
         }
-        if (html.includes('shopify') || html.includes('Shopify')) {
+        if (metaHas('generator', 'Shopify') || scriptHas('shopify') || linkHas('shopify')) {
             add('Framework Web / CMS', 'Shopify');
         }
-        if (html.includes('wix') || html.includes('Wix')) {
+        if (metaHas('generator', 'Wix') || scriptHas('wix') || linkHas('wix.com')) {
             add('Framework Web / CMS', 'Wix');
         }
-        if (html.includes('squarespace') || html.includes('Squarespace')) {
+        if (metaHas('generator', 'Squarespace') || scriptHas('squarespace') || linkHas('squarespace')) {
             add('Framework Web / CMS', 'Squarespace');
         }
-        if (document.querySelector('meta[name="generator"][content*="Drupal"]') || html.includes('drupal') || html.includes('Drupal')) {
+        if (metaHas('generator', 'Drupal') || scriptHas('drupal') || linkHas('drupal')) {
             add('Framework Web / CMS', 'Drupal');
         }
-        if (document.querySelector('meta[name="generator"][content*="Joomla"]') || html.includes('joomla') || html.includes('Joomla')) {
+        if (metaHas('generator', 'Joomla') || scriptHas('joomla') || linkHas('joomla')) {
             add('Framework Web / CMS', 'Joomla');
         }
-        if (html.includes('Magento') || html.includes('magento')) {
+        if (metaHas('generator', 'Magento') || scriptHas('magento') || linkHas('magento')) {
             add('Framework Web / CMS', 'Magento');
         }
-        if (html.includes('ghost') && !html.includes('ghostkit')) {
+        // Ghost CMS — only match ghost.org domain or meta generator
+        if (scriptHas('ghost.org') || linkHas('ghost.org') || metaHas('generator', 'Ghost')) {
             add('Framework Web / CMS', 'Ghost');
         }
 
-        // ----- Servicios Web / Payments -----
-        if (html.includes('stripe') || scripts.some(function(s) { return s.includes('stripe'); })) {
+        // ===== Servicios Web =====
+        if (scriptHas('stripe') || linkHas('stripe') || headHas('stripe')) {
             add('Servicios Web', 'Stripe');
         }
-        if (scripts.some(function(s) { return s.includes('paypal'); })) {
+        if (scriptHas('paypal')) {
             add('Servicios Web', 'PayPal');
         }
-        if (html.includes('youtube') || scripts.some(function(s) { return s.includes('youtube'); })) {
+        // YouTube — only if there's an actual embedded player
+        if (scriptHas('youtube.com/embed') || scriptHas('youtube.com/player') ||
+            document.querySelector('iframe[src*="youtube.com"]')) {
             add('Servicios Web', 'YouTube');
         }
-        if (html.includes('vimeo') || scripts.some(function(s) { return s.includes('vimeo'); })) {
+        if (scriptHas('vimeo') || document.querySelector('iframe[src*="vimeo"]')) {
             add('Servicios Web', 'Vimeo');
         }
-        if (html.includes('googlemaps') || scripts.some(function(s) { return s.includes('googlemaps') || s.includes('maps.google'); })) {
+        // Google Maps — only actual Maps API scripts, not embedded iframes or text mentions
+        if (scriptHas('maps.googleapis.com/maps/api') || scriptHas('maps.google.com/maps') ||
+            document.querySelector('script[src*="maps.googleapis.com/maps"]')) {
             add('Servicios Web', 'Google Maps');
         }
-        if (html.includes('recaptcha') || scripts.some(function(s) { return s.includes('recaptcha'); })) {
+        if (scriptHas('recaptcha') || scriptHas('google.com/recaptcha') || headHas('recaptcha')) {
             add('Servicios Web', 'reCAPTCHA');
         }
-        if (html.includes('hubspot') || scripts.some(function(s) { return s.includes('hubspot'); })) {
-            add('Servicios Web', 'HubSpot');
-        }
-        if (html.includes('mailchimp') || scripts.some(function(s) { return s.includes('mailchimp'); })) {
+        // Mailchimp — only actual Mailchimp API/forms, not widget plugins
+        if (scriptHas('mailchimp.com') || scriptHas('chimpstatic.com') || scriptHas('mc-validate') ||
+            scriptHas('mailchimp-woocommerce') || (linkHas('mailchimp') && linkHas('list-manage'))) {
             add('Servicios Web', 'Mailchimp');
         }
 
-        // ----- Lenguajes de Programación -----
-        if (html.includes('php') || document.querySelector('meta[content*="PHP"]') || scripts.some(function(s) { return s.includes('.php'); })) {
-            add('Lenguajes de Programación', 'PHP');
-        }
-        if (document.querySelector('meta[name="generator"][content*="Rails"]') || html.includes('ruby')) {
-            add('Lenguajes de Programación', 'Ruby on Rails');
-        }
-        if (html.includes('django') || html.includes('csrfmiddlewaretoken')) {
-            add('Lenguajes de Programación', 'Django');
-        }
-        if (html.includes('asp.net') || html.includes('__VIEWSTATE') || html.includes('__RequestVerificationToken')) {
-            add('Lenguajes de Programación', 'ASP.NET');
-        }
-        if (html.includes('flask') || html.includes('csrf_token') || scripts.some(function(s) { return s.includes('flask'); })) {
-            add('Lenguajes de Programación', 'Python (Flask)');
-        }
-        if (html.includes('jinja2') || html.includes('__jinja')) {
-            add('Lenguajes de Programación', 'Python (Jinja2)');
-        }
-        if (scripts.some(function(s) { return s.includes('webpack') || s.includes('__webpack'); }) || html.includes('webpack')) {
-            add('Lenguajes de Programación', 'Node.js');
-        }
-        if (scripts.some(function(s) { return s.includes('express') || s.includes('expressjs'); }) || html.includes('express')) {
-            add('Lenguajes de Programación', 'Express.js');
-        }
-        if (scripts.some(function(s) { return s.includes('koa') || s.includes('koajs'); })) {
-            add('Lenguajes de Programación', 'Koa.js');
-        }
-        if (scripts.some(function(s) { return s.includes('fastify'); })) {
-            add('Lenguajes de Programación', 'Fastify');
-        }
-        if (scripts.some(function(s) { return s.includes('nest') || s.includes('nestjs'); }) || html.includes('nestjs')) {
-            add('Lenguajes de Programación', 'NestJS');
-        }
-        if (html.includes('golang') || scripts.some(function(s) { return s.includes('golang') || s.includes('/go/') || s.includes('wasm_exec.js'); })) {
-            add('Lenguajes de Programación', 'Go');
-        }
-        if (html.includes('laravel') || scripts.some(function(s) { return s.includes('laravel'); })) {
-            add('Lenguajes de Programación', 'Laravel');
-        }
-        if (html.includes('symfony') || scripts.some(function(s) { return s.includes('symfony'); })) {
-            add('Lenguajes de Programación', 'Symfony');
-        }
-        if (html.includes('codeigniter') || scripts.some(function(s) { return s.includes('codeigniter'); })) {
-            add('Lenguajes de Programación', 'CodeIgniter');
-        }
-        if (document.querySelector('link[href*="fonts.googleapis.com"]')) {
-            add('Fonts', 'Google Fonts');
-        }
-        if (document.querySelector('link[href*="fonts.typekit.net"]') || html.includes('typekit')) {
-            add('Fonts', 'Adobe Fonts');
+        // ===== Automatización de Marketing =====
+        if (scriptHas('hubspot') || scriptHas('hs-scripts') || scriptHas('hsforms') ||
+            linkHas('hubspot') || inlineJsonHas('hubspot')) {
+            add('Automatización de Marketing', 'HubSpot');
         }
 
-        // ----- PWA -----
+        // ===== Plataforma de datos de clientes (CDP) =====
+        if (scriptHas('rudderstack') || scriptHas('rudderlabs') || scriptHas('rudderanalytics') ||
+            linkHas('rudderlabs') || inlineJsonHas('rudderstack') || inlineJsonHas('rudder')) {
+            add('Plataforma de datos de clientes', 'Rudderstack');
+        }
+        if (scriptHas('mparticle') || headHas('mparticle')) {
+            add('Plataforma de datos de clientes', 'mParticle');
+        }
+
+        // ===== Lenguajes de Programación (backend indicators) =====
+        // PHP — only if real server-side indicators exist
+        if (scriptHas('.php') || html.indexOf('csrf-token') !== -1 ||
+            document.querySelector('meta[name="csrf-token"]') ||
+            scriptHas('wp-content') || scriptHas('wp-includes') ||
+            metaHas('generator', 'WordPress') || metaHas('generator', 'Drupal') ||
+            metaHas('generator', 'Joomla')) {
+            add('Lenguajes de Programación', 'PHP');
+        }
+        if (metaHas('generator', 'Rails') || html.indexOf('data-turbolinks') !== -1 || scriptHas('rubyonrails')) {
+            add('Lenguajes de Programación', 'Ruby on Rails');
+        }
+        if (html.indexOf('csrfmiddlewaretoken') !== -1 || scriptHas('django') || metaHas('generator', 'Django')) {
+            add('Lenguajes de Programación', 'Django');
+        }
+        if (html.indexOf('__VIEWSTATE') !== -1 || html.indexOf('__RequestVerificationToken') !== -1 || html.indexOf('__EVENTVALIDATION') !== -1) {
+            add('Lenguajes de Programación', 'ASP.NET');
+        }
+        if (html.indexOf('csrf_token') !== -1 || scriptHas('flask')) {
+            add('Lenguajes de Programación', 'Python (Flask)');
+        }
+        if (html.indexOf('jinja2') !== -1 || html.indexOf('__jinja') !== -1) {
+            add('Lenguajes de Programación', 'Python (Jinja2)');
+        }
+        // Node.js — from bundler/build tool presence
+        if (scriptHas('__webpack') || scriptHas('/webpack') || scriptHas('vite') || headHas('webpack')) {
+            add('Lenguajes de Programación', 'Node.js');
+        }
+        if (scriptHas('expressjs') || scriptHas('/express/') || scriptHas('express.min')) {
+            add('Lenguajes de Programación', 'Express.js');
+        }
+        if (scriptHas('koa') || scriptHas('koajs')) {
+            add('Lenguajes de Programación', 'Koa.js');
+        }
+        if (scriptHas('fastify')) {
+            add('Lenguajes de Programación', 'Fastify');
+        }
+        if (scriptHas('nest') || scriptHas('nestjs') || headHas('nestjs')) {
+            add('Lenguajes de Programación', 'NestJS');
+        }
+        if (scriptHas('golang') || scriptHas('wasm_exec.js')) {
+            add('Lenguajes de Programación', 'Go');
+        }
+        // Laravel — only from scripts or meta, not body text mentions
+        if (scriptHas('laravel') || linkHas('laravel') || metaHas('generator', 'Laravel') ||
+            scriptHas('laravel.com/build/')) {
+            add('Lenguajes de Programación', 'Laravel');
+        }
+        if (scriptHas('symfony') || metaHas('generator', 'Symfony')) {
+            add('Lenguajes de Programación', 'Symfony');
+        }
+        if (scriptHas('codeigniter') || metaHas('generator', 'CodeIgniter')) {
+            add('Lenguajes de Programación', 'CodeIgniter');
+        }
+
+        // TypeScript — detected via Angular (ng-version), source maps, or framework indicators
+        if (document.querySelector('[ng-version]') ||
+            scriptHas('.ts') && (scriptHas('typescript') || scriptHas('sourcemap')) ||
+            html.indexOf('__esModule') !== -1 && (html.indexOf('ng-version') !== -1 || html.indexOf('angular') !== -1)) {
+            add('Lenguajes de Programación', 'TypeScript');
+        }
+
+        // ===== Tipografía =====
+        if (document.querySelector('link[href*="fonts.googleapis.com"]')) {
+            add('Tipografía', 'Google Font API');
+        }
+        if (document.querySelector('link[href*="fonts.typekit.net"]') || headHas('typekit')) {
+            add('Tipografía', 'Adobe Fonts');
+        }
+        if (document.querySelector('link[href*="fonts.bunny.net"]') || linkHas('fonts.bunny')) {
+            add('Tipografía', 'Bunny Fonts');
+        }
+
+        // ===== Miscelánea =====
+        // PWA
         if (document.querySelector('link[rel="manifest"]') ||
             document.querySelector('meta[name="apple-mobile-web-app-capable"]') ||
             document.querySelector('meta[name="theme-color"]') ||
             document.querySelector('meta[name="mobile-web-app-capable"]') ||
             document.querySelector('link[rel="apple-touch-icon"]')) {
-            add('PWA', 'PWA');
+            add('Miscelánea', 'PWA');
         }
-
-        // ----- Open Graph / Social -----
+        // Open Graph
         var ogTags = document.querySelectorAll('meta[property^="og:"]');
         if (ogTags.length > 0) {
-            add('Open Graph', 'Open Graph');
+            add('Miscelánea', 'Open Graph');
         }
+        // Twitter Cards
         var twitterTags = document.querySelectorAll('meta[name^="twitter:"]');
         if (twitterTags.length > 0) {
-            add('Open Graph', 'Twitter Cards');
+            add('Miscelánea', 'Twitter Cards');
         }
-        if (document.querySelector('meta[property="og:type"][content="article"]')) {
-            add('Open Graph', 'Article');
+        // RSS
+        if (document.querySelector('link[type="application/rss+xml"]') ||
+            document.querySelector('link[href$=".rss"]') ||
+            document.querySelector('link[href$="rss.xml"]') ||
+            headHas('application/rss+xml')) {
+            add('Miscelánea', 'RSS');
+        }
+        // Tailwind CSS — detect via CDN link, class names, or config comment
+        if (document.querySelector('link[href*="tailwind"]') ||
+            (html.indexOf('tailwind') !== -1 || html.indexOf('tailwindcss') !== -1) ||
+            // Heuristic: Tailwind utility classes pattern (e.g., bg-gray-100, text-sm, flex)
+            (html.indexOf('bg-gray-') !== -1 || html.indexOf('text-gray-') !== -1 || html.indexOf('dark:bg-') !== -1) &&
+            !html.indexOf('bootstrap')) {
+            add('UI Frameworks', 'Tailwind CSS');
         }
 
         return categories;
@@ -3547,6 +4022,529 @@
         var m = rgb.match(/\d+/g);
         if (!m || m.length < 3) return rgb;
         return '#' + ((1 << 24) + (parseInt(m[0]) << 16) + (parseInt(m[1]) << 8) + parseInt(m[2])).toString(16).slice(1).toUpperCase();
+    }
+
+    // ===== DRAW MODE =====
+    function toggleDrawMode() {
+        if (isDrawMode) {
+            deactivateDrawMode();
+        } else {
+            deactivateAllTools();
+            isDrawMode = true;
+            showDock();
+            createDrawOverlay();
+            createDrawToolbar();
+            showToast(t('draw.activate'));
+        }
+        updateDockButtons();
+    }
+
+    function deactivateDrawMode() {
+        isDrawMode = false;
+        if (drawOverlay) { drawOverlay.remove(); drawOverlay = null; }
+        if (drawToolbar) { drawToolbar.remove(); drawToolbar = null; }
+        hideDrawLaser();
+        if (drawLaser) { drawLaser.remove(); drawLaser = null; }
+        // Remove all shapes (including text sticky notes)
+        drawShapes.forEach(function(s) { if (s.el) s.el.remove(); });
+        drawShapes = [];
+        drawCurrent = null;
+        document.body.style.cursor = '';
+    }
+
+    function createDrawOverlay() {
+        if (drawOverlay) return;
+        drawOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        drawOverlay.setAttribute('id', 'canopy-draw-overlay');
+        drawOverlay.setAttribute('width', '100%');
+        drawOverlay.setAttribute('height', '100%');
+        drawOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2147483646;pointer-events:none;';
+        drawOverlay.innerHTML = '<defs><marker id="canopy-arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="' + drawColor + '"/></marker></defs><g id="canopy-draw-shapes"></g>';
+        document.body.appendChild(drawOverlay);
+    }
+
+    function createDrawToolbar() {
+        // Remove existing toolbar if recreating
+        if (drawToolbar && drawToolbar.parentNode) {
+            drawToolbar.remove();
+            drawToolbar = null;
+        }
+        drawToolbar = document.createElement('div');
+        drawToolbar.id = 'canopy-draw-toolbar';
+        drawToolbar.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:2147483647;' +
+            'display:flex;gap:4px;padding:6px 10px;background:rgba(19,70,17,0.92);border-radius:12px;' +
+            'box-shadow:0 4px 20px rgba(0,0,0,0.4);border:1px solid #3e8914;align-items:center;flex-wrap:nowrap;' +
+            'font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:12px;color:#e8fccf;white-space:nowrap;';
+
+        // Shape buttons
+        var shapeIconMap = { rect: 'square', line: 'minus', arrow: 'arrow-right', text: 'text-t', laser: 'laser-pointer', marker: 'highlighter' };
+        var shapeKeyMap = { rect: 'draw.rect', line: 'draw.line', arrow: 'draw.arrow', text: 'draw.text', laser: 'draw.laser', marker: 'draw.marker' };
+        var shapes = ['rect', 'line', 'arrow', 'text', 'marker', 'laser'];
+
+        var shapeGroup = document.createElement('div');
+        shapeGroup.style.cssText = 'display:flex;gap:3px;';
+
+        shapes.forEach(function(sid) {
+            var btn = document.createElement('button');
+            var icon = getPhosphorIcon(shapeIconMap[sid]);
+            btn.innerHTML = icon;
+            btn.title = t(shapeKeyMap[sid]);
+            btn.style.cssText = 'width:28px;height:28px;display:flex;align-items:center;justify-content:center;' +
+                'background:' + (drawShape === sid ? '#3e8914' : 'rgba(255,255,255,0.1)') + ';' +
+                'color:#e8fccf;border:1px solid ' + (drawShape === sid ? '#96e072' : '#3e8914') + ';' +
+                'border-radius:6px;cursor:pointer;padding:3px;flex-shrink:0;';
+            btn.addEventListener('click', function() {
+                drawShape = sid;
+                if (sid === 'laser') {
+                    showDrawLaser();
+                } else {
+                    hideDrawLaser();
+                }
+                createDrawToolbar();
+            });
+            shapeGroup.appendChild(btn);
+        });
+        drawToolbar.appendChild(shapeGroup);
+
+        // Separator
+        var sep1 = document.createElement('div');
+        sep1.style.cssText = 'width:1px;height:20px;background:rgba(150,224,114,0.3);margin:0 3px;flex-shrink:0;';
+        drawToolbar.appendChild(sep1);
+
+        // Color buttons
+        var colors = ['#ff0000', '#ff6600', '#ffcc00', '#00cc00', '#0066ff', '#9900cc', '#ffffff', '#000000'];
+        var colorGroup = document.createElement('div');
+        colorGroup.style.cssText = 'display:flex;gap:4px;align-items:center;';
+
+        colors.forEach(function(c) {
+            var swatch = document.createElement('button');
+            swatch.style.cssText = 'width:16px;height:16px;border-radius:50%;background:' + c + ';' +
+                'border:2px solid ' + (drawColor === c ? '#96e072' : 'rgba(255,255,255,0.3)') + ';' +
+                'cursor:pointer;padding:0;flex-shrink:0;';
+            swatch.title = c;
+            swatch.addEventListener('click', function() {
+                drawColor = c;
+                createDrawToolbar(); // recreate to update active state
+            });
+            colorGroup.appendChild(swatch);
+        });
+        drawToolbar.appendChild(colorGroup);
+
+        // Separator
+        var sep2 = document.createElement('div');
+        sep2.style.cssText = 'width:1px;height:20px;background:rgba(150,224,114,0.3);margin:0 3px;flex-shrink:0;';
+        drawToolbar.appendChild(sep2);
+
+        // Stroke width
+        var widthLabel = document.createElement('span');
+        widthLabel.textContent = t('draw.stroke') + ':';
+        widthLabel.style.cssText = 'font-size:10px;margin-right:1px;flex-shrink:0;';
+        drawToolbar.appendChild(widthLabel);
+
+        var widths = [1, 3, 5, 8];
+        widths.forEach(function(w) {
+            var wBtn = document.createElement('button');
+            wBtn.textContent = w;
+            wBtn.style.cssText = 'background:' + (drawStrokeWidth === w ? '#3e8914' : 'rgba(255,255,255,0.1)') + ';' +
+                'color:#e8fccf;border:1px solid ' + (drawStrokeWidth === w ? '#96e072' : '#3e8914') + ';' +
+                'border-radius:4px;padding:2px 5px;cursor:pointer;font-size:11px;min-width:22px;flex-shrink:0;';
+            wBtn.addEventListener('click', function() {
+                drawStrokeWidth = w;
+                createDrawToolbar();
+            });
+            drawToolbar.appendChild(wBtn);
+        });
+
+        // Separator
+        var sep3 = document.createElement('div');
+        sep3.style.cssText = 'width:1px;height:20px;background:rgba(150,224,114,0.3);margin:0 3px;flex-shrink:0;';
+        drawToolbar.appendChild(sep3);
+
+        // Fill opacity (only for rect)
+        if (drawShape === 'rect') {
+            var fillLabel = document.createElement('span');
+            fillLabel.textContent = t('draw.fill') + ':';
+            fillLabel.style.cssText = 'font-size:10px;margin-right:1px;flex-shrink:0;';
+            drawToolbar.appendChild(fillLabel);
+
+            var opacities = [0, 0.2, 0.5];
+            opacities.forEach(function(o) {
+                var oBtn = document.createElement('button');
+                oBtn.textContent = o === 0 ? '0%' : (o * 100) + '%';
+                oBtn.style.cssText = 'background:' + (drawFillOpacity === o ? '#3e8914' : 'rgba(255,255,255,0.1)') + ';' +
+                    'color:#e8fccf;border:1px solid ' + (drawFillOpacity === o ? '#96e072' : '#3e8914') + ';' +
+                    'border-radius:4px;padding:1px 4px;cursor:pointer;font-size:10px;min-width:22px;flex-shrink:0;';
+                oBtn.addEventListener('click', function() {
+                    drawFillOpacity = o;
+                    createDrawToolbar();
+                });
+                drawToolbar.appendChild(oBtn);
+            });
+
+            var sep4 = document.createElement('div');
+            sep4.style.cssText = 'width:1px;height:20px;background:rgba(150,224,114,0.3);margin:0 3px;flex-shrink:0;';
+            drawToolbar.appendChild(sep4);
+        }
+
+        // Action buttons
+        var undoBtn = document.createElement('button');
+        undoBtn.innerHTML = getPhosphorIcon('arrow-arc-left');
+        undoBtn.title = t('draw.undo');
+        undoBtn.style.cssText = 'width:28px;height:28px;display:flex;align-items:center;justify-content:center;' +
+            'background:rgba(255,255,255,0.1);color:#e8fccf;border:1px solid #3e8914;' +
+            'border-radius:6px;cursor:pointer;padding:3px;flex-shrink:0;';
+        undoBtn.addEventListener('click', function() {
+            if (drawShapes.length > 0) {
+                var removed = drawShapes.pop();
+                if (removed && removed.el) removed.el.remove();
+            }
+        });
+        drawToolbar.appendChild(undoBtn);
+
+        var clearBtn = document.createElement('button');
+        clearBtn.innerHTML = getPhosphorIcon('trash');
+        clearBtn.title = t('draw.clear');
+        clearBtn.style.cssText = 'width:28px;height:28px;display:flex;align-items:center;justify-content:center;' +
+            'background:rgba(255,255,255,0.1);color:#ff6666;border:1px solid #ff4444;' +
+            'border-radius:6px;cursor:pointer;padding:3px;flex-shrink:0;';
+        clearBtn.addEventListener('click', function() {
+            drawShapes.forEach(function(s) { if (s.el) s.el.remove(); });
+            drawShapes = [];
+        });
+        drawToolbar.appendChild(clearBtn);
+
+        var exitBtn = document.createElement('button');
+        exitBtn.innerHTML = getPhosphorIcon('x');
+        exitBtn.title = t('draw.done');
+        exitBtn.style.cssText = 'width:28px;height:28px;display:flex;align-items:center;justify-content:center;' +
+            'background:#3e8914;color:#fff;border:1px solid #96e072;' +
+            'border-radius:6px;cursor:pointer;padding:3px;flex-shrink:0;';
+        exitBtn.addEventListener('click', function() {
+            toggleDrawMode();
+        });
+        drawToolbar.appendChild(exitBtn);
+
+        // Append toolbar
+        document.body.appendChild(drawToolbar);
+    }
+
+    // Mouse handlers for drawing
+    function onDrawMouseDown(e) {
+        if (!isDrawMode) return;
+        if (e.button !== 0) return;
+        if (isExtensionElement(e.target)) return;
+
+        // Marker mode: start free-form drawing
+        if (drawShape === 'marker') {
+            e.preventDefault();
+            e.stopPropagation();
+            drawMarkerPoints = [];
+            drawMarkerPoints.push({ x: e.clientX, y: e.clientY });
+            drawCurrent = null;
+            document.body.style.cursor = 'crosshair';
+            return;
+        }
+
+        // Laser pointer mode: nothing on mousedown, just show laser
+        if (drawShape === 'laser') {
+            showDrawLaser();
+            return;
+        }
+
+        // Text mode: click to place a sticky note
+        if (drawShape === 'text') {
+            e.preventDefault();
+            e.stopPropagation();
+            createStickyNote(e.clientX, e.clientY);
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        drawStartX = e.clientX;
+        drawStartY = e.clientY;
+        drawCurrent = null;
+
+        document.body.style.cursor = 'crosshair';
+    }
+
+    function createStickyNote(x, y) {
+        var wrapper = document.createElement('div');
+        wrapper.className = 'canopy-sticky-note';
+        wrapper.style.cssText = 'position:fixed;left:' + x + 'px;top:' + y + 'px;z-index:2147483647;' +
+            'background:#fffde7;border:2px solid #f9a825;border-radius:8px;padding:8px 12px;' +
+            'box-shadow:0 4px 16px rgba(0,0,0,0.25);max-width:250px;min-width:120px;' +
+            'font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;cursor:default;';
+
+        // Prevent click from propagating to draw handlers
+        wrapper.addEventListener('mousedown', function(ev) {
+            ev.stopPropagation();
+        });
+
+        // Color indicator and controls (draggable)
+        var header = document.createElement('div');
+        header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;';
+        
+        var colorDot = document.createElement('div');
+        colorDot.style.cssText = 'width:12px;height:12px;border-radius:50%;background:' + drawColor + ';flex-shrink:0;cursor:grab;';
+        colorDot.title = 'Arrastrar para mover';
+        header.appendChild(colorDot);
+
+        // Dragging logic
+        var isDragging = false;
+        var dragStartX = 0;
+        var dragStartY = 0;
+        var origLeft = 0;
+        var origTop = 0;
+
+        colorDot.addEventListener('mousedown', function(ev) {
+            ev.stopPropagation();
+            ev.preventDefault();
+            isDragging = true;
+            dragStartX = ev.clientX;
+            dragStartY = ev.clientY;
+            origLeft = wrapper.offsetLeft;
+            origTop = wrapper.offsetTop;
+            colorDot.style.cursor = 'grabbing';
+            wrapper.style.transition = 'none';
+        });
+
+        document.addEventListener('mousemove', function(ev) {
+            if (!isDragging) return;
+            var dx = ev.clientX - dragStartX;
+            var dy = ev.clientY - dragStartY;
+            wrapper.style.left = (origLeft + dx) + 'px';
+            wrapper.style.top = (origTop + dy) + 'px';
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (isDragging) {
+                isDragging = false;
+                colorDot.style.cursor = 'grab';
+                wrapper.style.transition = '';
+            }
+        });
+
+        var closeBtn = document.createElement('button');
+        closeBtn.innerHTML = getPhosphorIcon('x');
+        closeBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:#999;padding:0;width:16px;height:16px;';
+        closeBtn.title = 'Eliminar nota';
+        closeBtn.addEventListener('click', function(ev) {
+            ev.stopPropagation();
+            ev.preventDefault();
+            wrapper.remove();
+            for (var i = drawShapes.length - 1; i >= 0; i--) {
+                if (drawShapes[i].el === wrapper) {
+                    drawShapes.splice(i, 1);
+                    break;
+                }
+            }
+        });
+        closeBtn.addEventListener('mousedown', function(ev) {
+            ev.stopPropagation();
+            ev.preventDefault();
+        });
+        header.appendChild(closeBtn);
+        wrapper.appendChild(header);
+
+        // Editable text area
+        var textEl = document.createElement('div');
+        textEl.contentEditable = true;
+        textEl.style.cssText = 'outline:none;min-height:24px;color:#333;line-height:1.4;word-wrap:break-word;';
+        textEl.textContent = 'Escribe aquí...';
+        textEl.addEventListener('focus', function() {
+            if (textEl.textContent === 'Escribe aquí...') {
+                textEl.textContent = '';
+            }
+        });
+        textEl.addEventListener('blur', function() {
+            if (textEl.textContent.trim() === '') {
+                textEl.textContent = 'Escribe aquí...';
+            }
+        });
+        textEl.addEventListener('mousedown', function(ev) {
+            if (!isDragging) ev.stopPropagation();
+        });
+        wrapper.appendChild(textEl);
+
+        document.body.appendChild(wrapper);
+        
+        // Auto-focus and select text
+        setTimeout(function() {
+            textEl.focus();
+            var sel = window.getSelection();
+            var range = document.createRange();
+            range.selectNodeContents(textEl);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }, 50);
+
+        drawShapes.push({ el: wrapper, type: 'text' });
+    }
+
+    // ===== LASER POINTER =====
+    function showDrawLaser() {
+        if (!drawLaser) {
+            drawLaser = document.createElement('div');
+            drawLaser.id = 'canopy-draw-laser';
+            drawLaser.style.cssText = 'position:fixed;z-index:2147483647;pointer-events:none;' +
+                'width:24px;height:24px;border-radius:50%;' +
+                'background:radial-gradient(circle, rgba(255,0,0,0.95) 0%, rgba(255,0,0,0.5) 35%, rgba(255,0,0,0) 70%);' +
+                'box-shadow:0 0 25px rgba(255,0,0,0.7), 0 0 50px rgba(255,0,0,0.3);' +
+                'transform:translate(-50%,-50%);will-change:left,top;';
+            document.body.appendChild(drawLaser);
+        }
+        drawLaser.style.display = 'block';
+        document.body.style.cursor = 'none';
+    }
+
+    function hideDrawLaser() {
+        if (drawLaser) drawLaser.style.display = 'none';
+        if (isDrawMode) document.body.style.cursor = 'crosshair';
+        else document.body.style.cursor = '';
+    }
+
+    function updateDrawLaser(x, y) {
+        if (drawLaser && drawLaser.style.display !== 'none') {
+            drawLaser.style.left = x + 'px';
+            drawLaser.style.top = y + 'px';
+        }
+    }
+
+    function onDrawMouseMove(e) {
+        // Laser pointer tracking (always active when laser mode)
+        if (isDrawMode && drawShape === 'laser') {
+            updateDrawLaser(e.clientX, e.clientY);
+            return;
+        }
+        // Marker free-form drawing
+        if (isDrawMode && drawShape === 'marker' && drawMarkerPoints.length > 0) {
+            drawMarkerPoints.push({ x: e.clientX, y: e.clientY });
+            // Remove previous preview
+            if (drawCurrent && drawCurrent.parentNode) drawCurrent.remove();
+            // Build preview path
+            var d = 'M';
+            for (var i = 0; i < drawMarkerPoints.length; i++) {
+                d += (i === 0 ? '' : 'L') + drawMarkerPoints[i].x + ' ' + drawMarkerPoints[i].y;
+            }
+            drawCurrent = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            drawCurrent.setAttribute('d', d);
+            drawCurrent.setAttribute('fill', 'none');
+            drawCurrent.setAttribute('stroke', drawColor);
+            drawCurrent.setAttribute('stroke-width', drawStrokeWidth * 3);
+            drawCurrent.setAttribute('stroke-linecap', 'round');
+            drawCurrent.setAttribute('stroke-linejoin', 'round');
+            drawCurrent.setAttribute('opacity', '0.4');
+            drawCurrent.style.cssText = 'pointer-events:none;';
+            var shapesGroup = drawOverlay.querySelector('#canopy-draw-shapes');
+            if (shapesGroup) shapesGroup.appendChild(drawCurrent);
+            return;
+        }
+        if (!isDrawMode || drawStartX === 0) return;
+        if (!drawCurrent && Math.abs(e.clientX - drawStartX) < 3 && Math.abs(e.clientY - drawStartY) < 3) return;
+
+        // Remove previous preview
+        if (drawCurrent && drawCurrent.parentNode) drawCurrent.remove();
+
+        var x1 = drawStartX;
+        var y1 = drawStartY;
+        var x2 = e.clientX;
+        var y2 = e.clientY;
+
+        var shapesGroup = drawOverlay.querySelector('#canopy-draw-shapes');
+
+        if (drawShape === 'rect') {
+            var rx = Math.min(x1, x2);
+            var ry = Math.min(y1, y2);
+            var rw = Math.abs(x2 - x1);
+            var rh = Math.abs(y2 - y1);
+
+            drawCurrent = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            drawCurrent.setAttribute('x', rx);
+            drawCurrent.setAttribute('y', ry);
+            drawCurrent.setAttribute('width', rw);
+            drawCurrent.setAttribute('height', rh);
+            drawCurrent.setAttribute('stroke', drawColor);
+            drawCurrent.setAttribute('stroke-width', drawStrokeWidth);
+            drawCurrent.setAttribute('fill', drawColor);
+            drawCurrent.setAttribute('fill-opacity', drawFillOpacity);
+            drawCurrent.style.cssText = 'pointer-events:none;';
+            shapesGroup.appendChild(drawCurrent);
+        } else if (drawShape === 'line' || drawShape === 'arrow') {
+            drawCurrent = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            drawCurrent.setAttribute('x1', x1);
+            drawCurrent.setAttribute('y1', y1);
+            drawCurrent.setAttribute('x2', x2);
+            drawCurrent.setAttribute('y2', y2);
+            drawCurrent.setAttribute('stroke', drawColor);
+            drawCurrent.setAttribute('stroke-width', drawStrokeWidth);
+            drawCurrent.setAttribute('stroke-linecap', 'round');
+            drawCurrent.style.cssText = 'pointer-events:none;';
+            if (drawShape === 'arrow') {
+                // Update shared preview marker color
+                var prevMarker = drawOverlay.querySelector('#canopy-arrowhead polygon');
+                if (prevMarker) prevMarker.setAttribute('fill', drawColor);
+                drawCurrent.setAttribute('marker-end', 'url(#canopy-arrowhead)');
+            }
+            shapesGroup.appendChild(drawCurrent);
+        }
+    }
+
+    function onDrawMouseUp(e) {
+        if (!isDrawMode) return;
+
+        // Finalize marker free-form drawing
+        if (drawShape === 'marker' && drawCurrent && drawMarkerPoints.length > 1) {
+            drawCurrent.style.cssText = '';
+            drawCurrent.setAttribute('data-canopy-draw', 'true');
+            drawCurrent.setAttribute('opacity', '0.35');
+            drawShapes.push({ el: drawCurrent, type: 'marker' });
+            drawCurrent = null;
+            drawMarkerPoints = [];
+            document.body.style.cursor = '';
+            return;
+        }
+        // Reset marker if no valid drawing
+        if (drawShape === 'marker') {
+            drawMarkerPoints = [];
+            if (drawCurrent && drawCurrent.parentNode) drawCurrent.remove();
+            drawCurrent = null;
+            document.body.style.cursor = '';
+            return;
+        }
+
+        if (!drawCurrent) { drawStartX = 0; drawStartY = 0; return; }
+
+        // Finalize the shape
+        drawCurrent.style.cssText = '';
+        drawCurrent.setAttribute('data-canopy-draw', 'true');
+
+        // For arrows, create a unique marker so color changes don't affect existing arrows
+        if (drawShape === 'arrow') {
+            var arrowId = 'canopy-arrow-' + drawShapes.length;
+            var defs = drawOverlay.querySelector('defs');
+            var marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', arrowId);
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('refX', '9');
+            marker.setAttribute('refY', '3.5');
+            marker.setAttribute('orient', 'auto');
+            var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            poly.setAttribute('points', '0 0, 10 3.5, 0 7');
+            poly.setAttribute('fill', drawColor);
+            marker.appendChild(poly);
+            defs.appendChild(marker);
+            drawCurrent.setAttribute('marker-end', 'url(#' + arrowId + ')');
+        }
+
+        drawShapes.push({ el: drawCurrent, type: drawShape });
+
+        drawCurrent = null;
+        drawStartX = 0;
+        drawStartY = 0;
+        document.body.style.cursor = '';
     }
 
     // ===== UTILITY =====

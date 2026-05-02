@@ -1,251 +1,128 @@
-# Canopy Ruler - Guía para Desarrolladores
+# Canopy Ruler — Agent Instructions
 
-## Iconos SVG - Phosphor Icons
+## Quickstart
+No build step. No package manager. No tests. Load directly:
+1. Open `chrome://extensions/`, enable Developer mode
+2. Click **Load unpacked**, select this folder
+3. After edits: click the reload icon on the extension card
+4. Test on real pages (static sites, SPAs, content-heavy pages)
+5. Check DevTools console — `[Canopy Ruler]` prefixes all log output
 
-### Fuente
-Los iconos SVG utilizados en esta extensión provienen de **Phosphor Icons**:
-- **Website**: https://phosphoricons.com
-- **Repositorio GitHub**: https://github.com/phosphor-icons/core
-- **Licencia**: MIT License
+## JavaScript conventions (rigid)
 
-### Cómo Descargar Iconos
+**ES5 only.** No transpiler — the code runs directly in the browser. Always use:
+- `var` instead of `let`/`const`
+- `function() {}` instead of arrow functions (`() => {}`)
+- No template literals (use `'string ' + var`)
+- No `class`, no destructuring, no `async/await`
+- 4-space indentation in JS files
 
-#### Método 1: Descarga Directa desde GitHub (Recomendado)
-Los iconos están disponibles directamente en el repositorio de GitHub:
+If you add new code, match the existing style exactly.
 
-```
-https://raw.githubusercontent.com/phosphor-icons/core/main/assets/{peso}/{nombre-icono}.svg
-```
+## Architecture: communication patterns
 
-**Pesos disponibles:**
-- `thin` - Iconos delgados
-- `light` - Iconos ligeros  
-- `regular` - Iconos regulares (recomendado)
-- `bold` - Iconos gruesos
-- `fill` - Iconos rellenos
-- `duotone` - Iconos duotono
+Three actors, each in its own context:
 
-**Ejemplo de descarga:**
-```bash
-# Descargar icono de regla (ruler) en peso regular
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/ruler.svg" -o ruler.svg
+| Component | File | Runs in |
+|-----------|------|---------|
+| Background (service worker) | `background.js` (338 lines) | Extension worker |
+| Content script | `scripts/content.js` (~4600 lines) | Every tab |
+| Side panel | `sidepanel/panel.js` (1154 lines) | Side panel window |
 
-# Descargar icono de ojo (eye) en peso bold
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/eye.svg" -o eye-bold.svg
-```
+**Message flow:**
+- **Background → Content**: `chrome.tabs.sendMessage(tabId, msg)` — dispatching commands from toolbar click, shortcuts, context menu. If content script isn't loaded, background auto-injects it via `chrome.scripting.executeScript`.
+- **Content → Background**: `chrome.runtime.sendMessage(msg)` via `safeSendMessage()` — for opening/closing side panel, capturing screenshots, downloading fonts, fetching server headers for technology detection.
+- **Content → Panel** (and reverse): Relay through background. Panel listens on `chrome.runtime.onMessage` (background acts as message bus).
+- **Background → Panel**: Uses `chrome.sidePanel.open()` for the panel tab, and closes by sending `{ action: 'panelClose' }`. When the user closes the panel via Chrome's built-in X button, a `beforeunload` event sends `panelClosedByUser` through the background to notify the content script.
+- **Server Headers**: Content script requests `{ action: 'fetchServerHeaders', url }` from background, which performs a HEAD request and returns HTTP response headers for server-side technology detection.
 
-#### Método 2: Desde la Página Web
-1. Visitar https://phosphoricons.com
-2. Buscar el icono deseado en la barra de búsqueda
-3. Seleccionar el peso (weight) deseado
-4. Hacer click en el icono para copiar el SVG o descargar
+The content script does the heavy lifting: dock UI, rulers, inspection, X-Ray, grid, eyedropper, WhatFont, draw & annotate, breakpoints, responsive mode, find element, viewport info. It is a single large file — read before editing.
 
-#### Método 3: Instalación vía npm
-```bash
-npm install @phosphor-icons/core
-```
+The side panel handles presentation: element details, page analysis, color palette, meta tags, technologies, head tags, resources, about tab, and settings.
 
-Los iconos estarán disponibles en:
-```
-node_modules/@phosphor-icons/core/assets/{peso}/{nombre-icono}.svg
-```
+## Bilingual i18n (NOT Chrome's system)
 
-### Iconos Utilizados en Canopy Ruler
+The `_locales/en/messages.json` and `_locales/es/messages.json` are **only used for the extension name and description** in Chrome Web Store (manifest references `__MSG_EXT_NAME__` etc.).
 
-| Icono | Nombre Archivo | Uso | Ubicación |
-|-------|---------------|-----|-----------|
-| sidebar | sidebar.svg | Botón Panel Lateral | Dock |
-| cursor-click | cursor-click.svg | Botón Inspeccionar | Dock + Panel |
-| magnifying-glass | magnifying-glass.svg | Botón Buscar Elemento | Dock |
-| ruler | ruler.svg | Logo + Botón Regla | Header + Dock |
-| arrows-out-line-horizontal | arrows-distance.svg | Botón Distancia | Dock |
-| eyedropper | eyedropper.svg | Botón Selector de Color | Dock |
-| ruler | ruler.svg | Botón Reglas de Página | Dock |
-| pencil-ruler | pencil-ruler.svg | Botón Cinta Métrica (Add Ruler) | Dock |
-| eye | eye.svg | Botón X-Ray | Dock + Panel |
-| grid-four | grid-four.svg | Botón Grid | Dock |
-| devices | devices.svg | Botón CSS Breakpoints | Dock |
-| monitor | monitor.svg | Botón Responsive Design | Dock |
-| camera | camera.svg | Botón Screenshot | Dock |
-| x | x.svg | Botón Cerrar Extensión | Dock |
-| copy | copy.svg | Botón Copiar | Panel |
+All **UI strings** use a custom system in each JS file:
+```js
+var _lang = 'en';
+var _messages = {
+    'dock.panel': { en: 'Toggle Side Panel', es: 'Alternar Panel Lateral' },
+    // ...
+};
 
-### Estructura de Iconos
-
-```
-canopy-ruler/
-├── images/
-│   └── icons/           # Iconos SVG descargados
-│       ├── sidebar.svg
-│       ├── cursor-click.svg
-│       ├── magnifying-glass.svg
-│       ├── ruler.svg
-│       ├── arrows-distance.svg
-│       ├── eyedropper.svg
-│       ├── eye.svg
-│       ├── grid-four.svg
-│       ├── devices.svg
-│       ├── monitor.svg
-│       ├── camera.svg
-│       ├── x.svg
-│       └── copy.svg
+function t(key) {
+    var msg = _messages[key];
+    if (!msg) return key;
+    return msg[_lang] || msg.en || key;
+}
 ```
 
-### Formato SVG
+Both `content.js` and `panel.js` each maintain their own `_messages` dictionary. Language persists via `chrome.storage.local` key `canopyLang` (`'en'` or `'es'`). When adding new UI strings, add entries to BOTH files.
 
-Los iconos Phosphor tienen las siguientes características:
-- **ViewBox**: `0 0 256 256`
-- **Fill**: `currentColor` (hereda el color del texto)
-- **Tamaño recomendado**: 20px para dock, 16px para panel
+## SVGs are inline, not loaded from disk
 
-Ejemplo de uso inline:
-```html
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
-  <path d="..."/>
-</svg>
-```
+The `images/icons/` directory contains Phosphor Icon SVG files, but the DOM is built entirely with inline SVG markup. In `content.js`, the `getPhosphorIcon(name)` function returns raw SVG strings. In `sidepanel/index.html`, all SVG paths are hardcoded inline. If you need a new icon, embed it directly — do not use `<img src>` for icons.
 
-### Búsqueda de Nuevos Iconos
+Flag SVGs (`usa.svg`, `colombia.svg`) are loaded via `chrome.runtime.getURL()` since they need to be in `web_accessible_resources`.
 
-Para encontrar nuevos iconos:
+## Theme: Forest Green
 
-1. **Buscar por categoría** en https://phosphoricons.com
-2. **Usar términos en inglés** (la librería está en inglés)
-3. **Términos comunes para herramientas de desarrollo:**
-   - Panel: `sidebar`, `panel`, `columns`
-   - Inspector: `cursor-click`, `cursor`, `inspector`
-   - Medición: `ruler`, `measure`, `arrows-out`
-   - Color: `eyedropper`, `palette`, `paint-brush`
-   - Captura: `camera`, `screenshot`, `image`
-   - Vista: `eye`, `eye-slash`, `scan`
-   - Grid: `grid-four`, `layout`, `columns`
-   - Limpiar: `x`, `trash`, `eraser`
-   - Copiar: `copy`, `clipboard`
-   - Descargar: `download`, `export`
-   - Configuración: `gear`, `sliders`
-   - Información: `info`, `question`
+CSS custom properties in `sidepanel/styles.css` define light and dark variants (`prefers-color-scheme`). The content script's dock uses hardcoded hex values inline. Key colors:
+- `#134611` (Forest Black) — dark backgrounds
+- `#3e8914` (Forest Green) — primary accents
+- `#3da35d` (Jungle) — hover states
+- `#96e072` (Light Green) — accent text
+- `#e8fccf` (Frosted Mint) — light backgrounds
 
-### Comandos Útiles
+## Keyboard shortcuts
+
+| Shortcut | Scope | Action |
+|----------|-------|--------|
+| `Alt+Shift+S` | Manifest command | Activate dock |
+| `Alt+Up` | Manifest command | Select parent element |
+| `Alt+Down` | Manifest command | Select child element |
+| `Backspace` / `Delete` | Content script listener | Remove selected ruler |
+| `Escape` | Content script listener | Exit current tool |
+| `Enter` | Content script listener | Confirm find element search |
+
+These are defined in `manifest.json` under `"commands"` and handled in `background.js` `chrome.commands.onCommand`.
+
+## Packaging
 
 ```bash
-# Crear directorio de iconos
-mkdir -p images/icons
-
-# Descargar múltiples iconos
-cd images/icons
-
-# Panel y navegación
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/sidebar.svg" -o sidebar.svg
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/cursor.svg" -o cursor.svg
-
-# Herramientas de inspección
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/cursor-click.svg" -o cursor-click.svg
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/eye.svg" -o eye.svg
-
-# Herramientas de medición
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/ruler.svg" -o ruler.svg
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/arrows-out-line-horizontal.svg" -o arrows-distance.svg
-
-# Color
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/eyedropper.svg" -o eyedropper.svg
-
-# Reglas de página
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/ruler.svg" -o ruler.svg
-
-# Cinta métrica / Add Ruler
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/pencil-ruler.svg" -o pencil-ruler.svg
-
-# Herramientas de layout
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/grid-four.svg" -o grid-four.svg
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/devices.svg" -o devices.svg
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/layout.svg" -o layout.svg
-
-# Captura y acciones
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/camera.svg" -o camera.svg
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/x.svg" -o x.svg
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/copy.svg" -o copy.svg
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/trash.svg" -o trash.svg
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/download.svg" -o download.svg
-
-# Navegación
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/arrow-up.svg" -o arrow-up.svg
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/arrow-down.svg" -o arrow-down.svg
-
-# Información
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/info.svg" -o info.svg
-curl -L "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/question.svg" -o question.svg
+bash package.sh   # creates dist/canopy-ruler-v{VERSION}.zip
 ```
+Requires `node` (reads version from `manifest.json`). Production files only: excludes `dist/`, `docs/`, `.github/`, `README.md`, etc. CI triggers on `v*` tags, runs `package.sh`, and attaches the zip to a GitHub Release.
 
-### Notas Importantes
+## Version bump — all locations
 
-1. **Siempre usar `fill="currentColor"`** para que los iconos hereden el color del tema
-2. **Mantener viewBox="0 0 256 256"** para consistencia
-3. **Usar width/height explícitos** para controlar el tamaño
-4. **Los iconos se descargan una sola vez** y se almacenan localmente
-5. **No modificar los paths SVG** para mantener la integridad del diseño
+When bumping the version, update ALL of these:
 
-### Atribución
+| File | Line/Pattern | Notes |
+|------|-------------|-------|
+| `manifest.json` | `"version": "X.Y.Z"` | **Source of truth.** `package.sh` and `about-version` read from here. |
+| `README.md` | `badge/version-X.Y.Z` | Badge URL in the shields.io image |
+| `sidepanel/index.html` | `vX.Y.Z` (fallback) | Hardcoded fallback. The actual display reads from `chrome.runtime.getManifest().version` at runtime. |
 
-Cuando se agreguen nuevos iconos, mantener la atribución:
-```
-Icons by Phosphor Icons (https://phosphoricons.com)
-Licensed under MIT License
-```
+The side panel About tab reads the version dynamically from `chrome.runtime.getManifest().version`, so after changing `manifest.json` and reloading the extension, the panel will show the correct version automatically.
 
-## Estructura del Proyecto
+## Manifest permissions
 
-```
-canopy-ruler/
-├── manifest.json              # Configuración de la extensión Chrome
-├── background.js              # Service Worker
-├── scripts/
-│   └── content.js             # Content Script (dock, reglas, distancia)
-├── sidepanel/
-│   ├── index.html             # Panel lateral
-│   ├── panel.js               # Controlador del panel
-│   └── styles.css             # Estilos del panel
-├── images/
-│   ├── icon16.png             # Iconos de la extensión
-│   ├── icon32.png
-│   ├── icon48.png
-│   ├── icon64.png
-│   └── icon128.png
-│   └── icons/                 # Iconos SVG de Phosphor
-├── _locales/
-│   ├── en/messages.json       # Traducciones inglés
-│   └── es/messages.json       # Traducciones español
-└── AGENTS.md                  # Este archivo
-```
+- Required: `scripting`, `activeTab`, `contextMenus`, `commands`, `storage`, `sidePanel`, `downloads`
+- Optional: `clipboardWrite`
+- Content script matches all URLs, runs at `document_end`
+- Only `images/usa.svg` and `images/colombia.svg` are web-accessible
 
-## Desarrollo
+When adding features that need new permissions, add required ones and keep `clipboardWrite` as optional.
 
-### Tecnologías
-- **Manifest V3**: Última versión de extensiones Chrome
-- **JavaScript vanilla**: Sin frameworks para máxima compatibilidad
-- **CSS Custom Properties**: Para temas dinámicos
-- **SVG**: Iconos escalables de Phosphor
+## Phosphor Icons
 
-### Temas
-La extensión usa una paleta de colores verde bosque (Forest Green):
-- `--forest-black: #134611` - Fondos oscuros
-- `--forest-green: #3e8914` - Acentos primarios
-- `--jungle: #3da35d` - Estados hover
-- `--light-green: #96e072` - Texto acentuado
-- `--frosted-mint: #e8fccf` - Fondos claros
+If you need a new icon, get it from https://phosphoricons.com. Use the `regular` weight, 20px for dock, 16px for panel. Embed the SVG path inline into `getPhosphorIcon()` in `content.js` or directly into `index.html`. Always:
+- `viewBox="0 0 256 256"`
+- `fill="currentColor"` (inherits theme color)
+- Don't modify the `d` paths
 
-### Funcionalidades Principales
-1. **Dock flotante**: Barra de herramientas en la parte inferior (NO abre panel automáticamente)
-2. **Panel lateral**: Información detallada del elemento (se abre solo con botón del dock)
-3. **Inspección de elementos**: Hover y click para seleccionar
-4. **Reglas**: Medición libre con click y arrastre
-5. **Distancia**: Medición entre dos elementos
-6. **Selector de color (Eyedropper)**: Click para copiar color al portapapeles
-7. **Screenshot**: Captura pantalla y descarga automáticamente como PNG
-8. **X-Ray**: Visualización de todos los elementos
-9. **Grid Overlay**: Cuadrícula de alineación
-10. **Reglas de Página**: Reglas horizontales y verticales con escala en píxeles en los bordes
-11. **Copiar CSS/Selector**: Al portapapeles desde el panel
-
-## Licencia
-
-Este proyecto es de código abierto. Los iconos son propiedad de Phosphor Icons bajo licencia MIT.
+---
+See `README.md` for feature documentation and `CONTRIBUTING.md` for contribution guidelines.

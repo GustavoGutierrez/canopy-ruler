@@ -5,7 +5,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-1.0.0-3e8914)](manifest.json)
+[![Version](https://img.shields.io/badge/version-1.0.1-3e8914)](manifest.json)
 [![License](https://img.shields.io/badge/license-MIT-3e8914)](LICENSE)
 [![Chrome](https://img.shields.io/badge/chrome-MV3-3e8914?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/)
 [![Vanilla JS](https://img.shields.io/badge/vanilla-JS-3e8914?logo=javascript&logoColor=white)]()
@@ -21,7 +21,7 @@
     <a href="https://gustavogutierrez.github.io/canopy-ruler/privacy.html">🔒 Privacy Policy</a>
 </div>
 
-**Canopy Ruler** is a free, open-source Chrome extension that puts a complete web inspection toolkit into a floating toolbar. Inspect DOM elements, measure pixel-perfect distances, extract CSS and colors, identify and download fonts, capture screenshots, analyze page color palettes, and detect the technologies powering any website — all without leaving your tab.
+**Canopy Ruler** is a free, open-source Chrome extension that puts a complete web inspection toolkit into a floating toolbar. Inspect DOM elements, measure pixel-perfect distances, extract CSS and colors, identify and download fonts, capture screenshots, draw and annotate on the page, analyze page color palettes, and detect the technologies powering any website — all without leaving your tab.
 
 ---
 
@@ -52,7 +52,7 @@
 
 ### Page Analysis
 - **Meta Tags & SEO** — view all meta tags with name and content
-- **Technology Detection** — identifies 100+ frameworks, libraries, analytics, CDNs, CMS, and backend languages. Grouped by category with collapsible headers. Export to CSV
+- **Technology Detection** — identifies 100+ frameworks, libraries, analytics, CDNs, CMS, and backend languages from the DOM. Also fetches HTTP response headers to detect server-side technologies (Nginx, Apache, LiteSpeed, PHP, Node.js, Express, Cloudflare). Grouped by category with collapsible headers. Export to CSV
 - **Head Tags** — canonical links, preconnect, favicons, preload hints — grouped by type
 
 ### Visual Tools
@@ -60,12 +60,29 @@
 - **CSS Breakpoints** — detect and display responsive breakpoints
 - **Responsive Mode** — resizable viewport simulator
 - **Viewport Info** — window, document, and screen dimensions with DPR and current breakpoint
-- **Screenshot** — capture the visible tab as PNG with one click
+- **Screenshot** — capture the visible tab as PNG with one click. Extension UI is automatically hidden for clean captures
+- **Draw & Annotate** — rectangles, lines, arrows, laser pointer, free-form highlighter marker
+
+### Draw & Annotate
+- **Free-form drawing** — draw shapes directly on any web page
+- **Rectangle** — draw boxes with customizable stroke width, color, and fill opacity
+- **Line** — draw straight lines for precise annotations
+- **Arrow** — draw arrows with directional heads for pointing out elements
+- **Laser Pointer** — highlight areas with a glowing laser effect
+- **Highlighter / Marker** — paint freely with a semi-transparent brush
+- **Undo** support — remove the last drawn shape
+- **Clear All** and **Finish Drawing** controls
 
 ### Resources
 - Extract and preview images and SVGs from a selected element
 - **SVG preview** — inline SVGs render as actual graphics (not placeholders)
 - Download individual images or all at once
+
+### Side Panel
+- **Element tab** — box model visualization, dimensions, colors, typography, action buttons
+- **Page tab** — URL analysis, meta tags, technologies, color palette, head tags, resources
+- **About tab** — extension info, bilingual feature tags, author details, donation link
+- **Panel close detection** — detects when the panel is closed via Chrome's built-in close button
 
 ### Language
 - **Bilingual** — toggle between English and Spanish with one click
@@ -110,7 +127,7 @@ canopy-ruler/
 ├── scripts/
 │   └── content.js         # Content script (dock, rulers, inspection, WhatFont, etc.)
 ├── sidepanel/
-│   ├── index.html         # Side panel UI (3 tabs: Element, Page, About)
+│   ├── index.html         # Side panel UI (4 tabs: Element, Page, About, Settings)
 │   ├── panel.js           # Panel controller
 │   └── styles.css         # Panel styles (Green Forest theme)
 ├── images/
