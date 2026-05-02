@@ -15,6 +15,12 @@
 
 > The measuring tool that spreads like a canopy over your web page.
 
+<div align="center">
+    <a href="https://gustavogutierrez.github.io/canopy-ruler/index.html">📖 Documentation</a>
+    &nbsp;·&nbsp;
+    <a href="https://gustavogutierrez.github.io/canopy-ruler/privacy.html">🔒 Privacy Policy</a>
+</div>
+
 **Canopy Ruler** is a free, open-source Chrome extension that puts a complete web inspection toolkit into a floating toolbar. Inspect DOM elements, measure pixel-perfect distances, extract CSS and colors, identify and download fonts, capture screenshots, analyze page color palettes, and detect the technologies powering any website — all without leaving your tab.
 
 ---
