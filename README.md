@@ -73,7 +73,7 @@
 ### From Source (Developer Mode)
 1. Clone the repository:
    ```bash
-   git clone https://github.com/username/canopy-ruler.git
+   git clone https://github.com/GustavoGutierrez/canopy-ruler.git
    ```
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable **Developer mode** (toggle in the top-right corner)
