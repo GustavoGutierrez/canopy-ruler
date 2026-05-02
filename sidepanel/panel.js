@@ -234,10 +234,23 @@
         init();
     }
 
+    function setupLogoFallback() {
+        var imgs = document.querySelectorAll('img.logo-img');
+        for (var i = 0; i < imgs.length; i++) {
+            imgs[i].addEventListener('error', function() {
+                this.style.display = 'none';
+                if (this.nextElementSibling) {
+                    this.nextElementSibling.style.display = 'block';
+                }
+            });
+        }
+    }
+
     function init() {
         setupEventListeners();
         setupTabs();
         setupCopyableItems();
+        setupLogoFallback();
         updateUI();
     }
 

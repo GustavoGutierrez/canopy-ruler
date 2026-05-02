@@ -13,7 +13,7 @@
         <!-- Header -->
         <div class="header">
             <div class="logo">
-                <img src="../images/icon64.png" width="24" height="24" alt="Canopy Ruler" style="display:block;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                <img src="../images/icon64.png" width="24" height="24" alt="Canopy Ruler" style="display:block;" class="logo-img">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 256 256" fill="currentColor" style="display:none;">
                     <path d="M235.32,73.37,182.63,20.69a16,16,0,0,0-22.63,0L20.68,160a16,16,0,0,0,0,22.63l52.69,52.68a16,16,0,0,0,22.63,0L235.32,96A16,16,0,0,0,235.32,73.37ZM84.68,224,32,171.31l32-32,26.34,26.35a8,8,0,0,0,11.32-11.32L75.31,128,96,107.31l26.34,26.35a8,8,0,0,0,11.32-11.32L107.31,96,128,75.31l26.34,26.35a8,8,0,0,0,11.32-11.32L139.31,64l32-32L224,84.69Z"/>
                 </svg>
@@ -369,7 +369,7 @@
         <!-- Tab Content: About -->
         <div id="tab-content-about" class="tab-content" style="padding:16px;text-align:center;">
             <div style="margin-bottom:20px;">
-                <img src="../images/icon128.png" width="64" height="64" alt="Canopy Ruler" style="border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,0.3);" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                <img src="../images/icon128.png" width="64" height="64" alt="Canopy Ruler" style="border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,0.3);" class="logo-img">
                 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 256 256" fill="currentColor" style="display:none;margin:0 auto;color:var(--accent);"><path d="M235.32,73.37,182.63,20.69a16,16,0,0,0-22.63,0L20.68,160a16,16,0,0,0,0,22.63l52.69,52.68a16,16,0,0,0,22.63,0L235.32,96A16,16,0,0,0,235.32,73.37ZM84.68,224,32,171.31l32-32,26.34,26.35a8,8,0,0,0,11.32-11.32L75.31,128,96,107.31l26.34,26.35a8,8,0,0,0,11.32-11.32L107.31,96,128,75.31l26.34,26.35a8,8,0,0,0,11.32-11.32L139.31,64l32-32L224,84.69Z"/></svg>
             </div>
             <h2 id="about-title" style="color:var(--text);margin:0 0 4px 0;font-size:18px;">Canopy Ruler</h2>
@@ -406,12 +406,11 @@
 
                 <div style="margin:20px auto 0;text-align:center;">
                     <a href="https://www.paypal.com/donate/?hosted_button_id=GZUAD8BS55WEJ" target="_blank" rel="noopener" 
-                       style="display:inline-flex;align-items:center;gap:8px;padding:10px 24px;
-                              background:linear-gradient(135deg,#0070ba,#003087);color:#fff;border-radius:25px;
-                              text-decoration:none;font-size:13px;font-weight:600;transition:all 0.2s;
-                              box-shadow:0 2px 8px rgba(0,112,186,0.3);"
-                       onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 14px rgba(0,112,186,0.4)';"
-                       onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(0,112,186,0.3)';">
+                   class="donate-btn"
+                   style="display:inline-flex;align-items:center;gap:8px;padding:10px 24px;
+                          background:linear-gradient(135deg,#0070ba,#003087);color:#fff;border-radius:25px;
+                          text-decoration:none;font-size:13px;font-weight:600;transition:all 0.2s;
+                          box-shadow:0 2px 8px rgba(0,112,186,0.3);">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
                             <path d="M178,40c-20.65,0-38.73,8.88-50,23.31C116.73,48.88,98.65,40,78,40A62.07,62.07,0,0,0,16,102c0,68,62,128,103.13,167.14a8,8,0,0,0,11.26-.24C169.62,229.83,232,170.52,232,102A62.07,62.07,0,0,0,178,40Z"/>
                         </svg>
