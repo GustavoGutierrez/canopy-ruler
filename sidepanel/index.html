@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Canopy Ruler</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:ital,wght@0,300..500;1,300..500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <img src="../images/icon64.png" width="24" height="24" alt="Canopy Ruler" style="display:block;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 256 256" fill="currentColor" style="display:none;">
+                    <path d="M235.32,73.37,182.63,20.69a16,16,0,0,0-22.63,0L20.68,160a16,16,0,0,0,0,22.63l52.69,52.68a16,16,0,0,0,22.63,0L235.32,96A16,16,0,0,0,235.32,73.37ZM84.68,224,32,171.31l32-32,26.34,26.35a8,8,0,0,0,11.32-11.32L75.31,128,96,107.31l26.34,26.35a8,8,0,0,0,11.32-11.32L107.31,96,128,75.31l26.34,26.35a8,8,0,0,0,11.32-11.32L139.31,64l32-32L224,84.69Z"/>
+                </svg>
+                <span class="title">Canopy Ruler</span>
+            </div>
+            <div class="actions">
+                <button class="btn btn-inspect" id="btn-inspect" title="Start Inspecting">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+                        <path d="M88,24V16a8,8,0,0,1,16,0v8a8,8,0,0,1-16,0ZM16,104h8a8,8,0,0,0,0-16H16a8,8,0,0,0,0,16ZM124.42,39.16a8,8,0,0,0,10.74-3.58l8-16a8,8,0,0,0-14.31-7.16l-8,16A8,8,0,0,0,124.42,39.16Zm-96,81.69-16,8a8,8,0,0,0,7.16,14.31l16-8a8,8,0,1,0-7.16-14.31ZM219.31,184a16,16,0,0,1,0,22.63l-12.68,12.68a16,16,0,0,1-22.63,0L132.7,168,115,214.09c0,.1-.08.21-.13.32a15.83,15.83,0,0,1-14.6,9.59l-.79,0a15.83,15.83,0,0,1-14.41-11L32.8,52.92A16,16,0,0,1,52.92,32.8L213,85.07a16,16,0,0,1,1.41,29.8l-.32.13L168,132.69ZM208,195.31,156.69,144h0a16,16,0,0,1,4.93-26l.32-.14,45.95-17.64L48,48l52.2,159.86,17.65-46c0-.11.08-.22.13-.33a16,16,0,0,1,11.69-9.34,16.72,16.72,0,0,1,3-.28,16,16,0,0,1,11.3,4.69L195.31,208Z"/>
+                    </svg>
+                </button>
+                <button class="btn" id="btn-xray" title="Toggle X-Ray Mode">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+                        <path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128,133.33,133.33,0,0,1,48.07,97.25C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/>
+                    </svg>
+                </button>
+                <button class="btn" id="btn-copy" title="Copy CSS">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+                        <path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"/>
+                    </svg>
+                </button>
+                <button class="btn" id="btn-lang" title="Switch language" style="padding:2px;min-width:28px;display:flex;align-items:center;justify-content:center;">
+                    <img id="btn-lang-flag" src="../images/colombia.svg" width="20" height="20" style="border-radius:50%;object-fit:cover;" alt="">
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <button class="tab-btn active" id="tab-element" data-tab="element">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M88,24V16a8,8,0,0,1,16,0v8a8,8,0,0,1-16,0ZM16,104h8a8,8,0,0,0,0-16H16a8,8,0,0,0,0,16ZM124.42,39.16a8,8,0,0,0,10.74-3.58l8-16a8,8,0,0,0-14.31-7.16l-8,16A8,8,0,0,0,124.42,39.16Zm-96,81.69-16,8a8,8,0,0,0,7.16,14.31l16-8a8,8,0,1,0-7.16-14.31ZM219.31,184a16,16,0,0,1,0,22.63l-12.68,12.68a16,16,0,0,1-22.63,0L132.7,168,115,214.09c0,.1-.08.21-.13.32a15.83,15.83,0,0,1-14.6,9.59l-.79,0a15.83,15.83,0,0,1-14.41-11L32.8,52.92A16,16,0,0,1,52.92,32.8L213,85.07a16,16,0,0,1,1.41,29.8l-.32.13L168,132.69ZM208,195.31,156.69,144h0a16,16,0,0,1,4.93-26l.32-.14,45.95-17.64L48,48l52.2,159.86,17.65-46c0-.11.08-.22.13-.33a16,16,0,0,1,11.69-9.34,16.72,16.72,0,0,1,3-.28,16,16,0,0,1,11.3,4.69L195.31,208Z"/></svg>
+                Elemento
+            </button>
+            <button class="tab-btn" id="tab-page" data-tab="page">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm88,104a87.62,87.62,0,0,1-6.4,32.94L149.26,100.27a168.14,168.14,0,0,0,49.65-35.46A87.82,87.82,0,0,1,216,128ZM152.17,37.71A151.42,151.42,0,0,1,192.64,64a151.42,151.42,0,0,1-22.43,58.81,155.9,155.9,0,0,0-40.48-26.29A155.9,155.9,0,0,0,152.17,37.71ZM128.86,103.83a140.15,140.15,0,0,1,38.42,24.92,140.15,140.15,0,0,1-24.92,38.42,140.15,140.15,0,0,1-38.42-24.92A140.15,140.15,0,0,1,128.86,103.83ZM92.26,97.52a155.9,155.9,0,0,0-40.48,26.29A151.42,151.42,0,0,1,63.36,64,151.42,151.42,0,0,1,92.26,97.52Zm0,60.96a151.42,151.42,0,0,1-28.9,33.52,151.42,151.42,0,0,1,49.65-35.46,168.14,168.14,0,0,0,22.43,58.81,155.9,155.9,0,0,0,40.48,26.29,151.42,151.42,0,0,1-83.66-83.16ZM106.74,218.29a168.14,168.14,0,0,0,35.46-49.65,168.14,168.14,0,0,0,49.65,35.46,87.82,87.82,0,0,1-85.11,14.19Z"/></svg>
+                Página
+            </button>
+            <button class="tab-btn" id="tab-about" data-tab="about">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm-4,48a12,12,0,1,1-12,12A12,12,0,0,1,124,72Zm12,112a16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40a8,8,0,0,1,0,16Z"/></svg>
+                Acerca de
+            </button>
+        </div>
+
+        <!-- Tab Content: Elemento -->
+        <div id="tab-content-element" class="tab-content active">
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state active">
+                <div class="empty-icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <path d="M3 3h18v18H3zM3 9h18M9 3v18"/>
+                    </svg>
+                </div>
+                <h3>No Element Selected</h3>
+                <p>Click on any element on the page to inspect it</p>
+                <div class="shortcuts-hint">
+                    <div class="shortcut">
+                        <kbd>Alt+Shift+S</kbd>
+                        <span>Start Inspecting</span>
+                    </div>
+                    <div class="shortcut">
+                        <kbd>Alt+↑</kbd>
+                        <span>Select Parent</span>
+                    </div>
+                    <div class="shortcut">
+                        <kbd>Alt+↓</kbd>
+                        <span>Select Child</span>
+                    </div>
+                    <div class="shortcut">
+                        <kbd>Esc</kbd>
+                        <span>Stop Inspecting</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Element Info -->
+            <div id="element-info" class="element-info">
+                <!-- Size Section -->
+                <div class="element-section">
+                    <div class="section-header">
+                        <span id="el-tag" class="element-badge">div</span>
+                        <div class="element-actions">
+                            <button class="action-btn" id="btn-parent" title="Select Parent (Alt+↑)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
+                                    <path d="M213.66,165.66a8,8,0,0,1-11.32,0L128,91.31,53.66,165.66a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,213.66,165.66Z"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn" id="btn-child" title="Select Child (Alt+↓)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
+                                    <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80a8,8,0,0,1,11.32-11.32L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn" id="btn-copy-selector" title="Copy Selector">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="size-display">
+                        <span id="el-width">0</span>
+                        <span class="size-separator">×</span>
+                        <span id="el-height">0</span>
+                    </div>
+                </div>
+
+                <!-- Position Section -->
+                <div class="element-section">
+                    <div class="section-title">Position</div>
+                    <div class="position-grid">
+                        <div class="position-item">
+                            <span class="position-label">X Position</span>
+                            <span id="el-x" class="position-value">0px</span>
+                        </div>
+                        <div class="position-item">
+                            <span class="position-label">Y Position</span>
+                            <span id="el-y" class="position-value">0px</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Box Model Section -->
+                <div class="element-section">
+                    <div class="section-title">Modelo de Caja</div>
+                    <div class="box-model-container">
+                        <div class="box-layer box-margin">
+                            <div class="box-label">Margen</div>
+                            <div class="box-value" id="bm-margin-top">-</div>
+                            <div class="box-middle">
+                                <div class="box-value" id="bm-margin-left">-</div>
+                                <div class="box-layer box-border">
+                                    <div class="box-label">Borde</div>
+                                    <div class="box-value" id="bm-border-top">-</div>
+                                    <div class="box-middle">
+                                        <div class="box-value" id="bm-border-left">-</div>
+                                        <div class="box-layer box-padding">
+                                            <div class="box-label">Espaciado Interno</div>
+                                            <div class="box-value" id="bm-padding-top">-</div>
+                                            <div class="box-middle">
+                                                <div class="box-value" id="bm-padding-left">-</div>
+                                                <div class="box-content">
+                                                    <span id="bm-content-width">0</span>
+                                                    <span class="box-multiply">×</span>
+                                                    <span id="bm-content-height">0</span>
+                                                </div>
+                                                <div class="box-value" id="bm-padding-right">-</div>
+                                            </div>
+                                            <div class="box-value" id="bm-padding-bottom">-</div>
+                                        </div>
+                                        <div class="box-value" id="bm-border-right">-</div>
+                                    </div>
+                                    <div class="box-value" id="bm-border-bottom">-</div>
+                                </div>
+                                <div class="box-value" id="bm-margin-right">-</div>
+                            </div>
+                            <div class="box-value" id="bm-margin-bottom">-</div>
+                        </div>
+                    </div>
+                    <div class="box-sizing-info">
+                        <span class="box-sizing-label">box-sizing:</span>
+                        <span class="box-sizing-value" id="el-box-sizing">content-box</span>
+                    </div>
+                </div>
+
+                <!-- Layout Section -->
+                <div class="element-section">
+                    <div class="section-title">Layout</div>
+                    <div class="layout-grid">
+                        <div class="layout-item">
+                            <span class="layout-label">Display</span>
+                            <span id="el-display" class="layout-value">block</span>
+                        </div>
+                        <div class="layout-item">
+                            <span class="layout-label">Position</span>
+                            <span id="el-position" class="layout-value">static</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Colors Section -->
+                <div class="element-section">
+                    <div class="section-title">Colors</div>
+                    <div class="colors-grid">
+                        <div class="color-item">
+                            <span class="color-label">Background</span>
+                            <div class="color-row">
+                                <div id="el-bg-color" class="color-swatch" style="background: transparent;"></div>
+                                <span id="el-bg-value" class="color-value">transparent</span>
+                            </div>
+                        </div>
+                        <div class="color-item">
+                            <span class="color-label">Text</span>
+                            <div class="color-row">
+                                <div id="el-text-color" class="color-swatch" style="background: #000;"></div>
+                                <span id="el-text-value" class="color-value">#000000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Typography Section -->
+                <div class="element-section">
+                    <div class="section-title">Typography</div>
+                    <div class="typo-grid">
+                        <div class="typo-item full-width">
+                            <span class="typo-label">Font Family</span>
+                            <span id="el-font" class="typo-value">inherit</span>
+                        </div>
+                        <div class="typo-item">
+                            <span class="typo-label">Font Size</span>
+                            <span id="el-font-size" class="typo-value">16px</span>
+                        </div>
+                        <div class="typo-item">
+                            <span class="typo-label">Font Weight</span>
+                            <span id="el-font-weight" class="typo-value">400</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resources Section -->
+                <div class="element-section" id="resources-section" style="display: none;">
+                    <div class="section-header">
+                        <div class="section-title">Recursos</div>
+                        <button class="action-btn" id="btn-download-all" title="Descargar Todo">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
+                                <path d="M213.66,122.34l-80,80a8,8,0,0,1-11.32,0l-80-80a8,8,0,0,1,11.32-11.32L120,180.69V40a8,8,0,0,1,16,0V180.69l66.34-69.67a8,8,0,0,1,11.32,11.32ZM216,200H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="resources-grid" class="resources-grid"></div>
+                </div>
+
+                <!-- Selector Section -->
+                <div class="element-section">
+                    <div class="section-header">
+                        <div class="section-title">Selector</div>
+                        <button class="action-btn" id="btn-copy-html" title="Copy HTML">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn" id="btn-delete-element" title="Delete Element">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="selector-section">
+                        <code id="el-selector" class="selector-code">div</code>
+                    </div>
+                    <div class="selector-row">
+                        <span class="selector-label">ID</span>
+                        <code id="el-id" class="selector-value">none</code>
+                    </div>
+                    <div class="selector-row">
+                        <span class="selector-label">Class</span>
+                        <code id="el-class" class="selector-value">none</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Página -->
+        <div id="tab-content-page" class="tab-content">
+            <!-- Page Overview -->
+            <div class="page-overview">
+                <div class="copyable-item" id="page-title-container">
+                    <div class="copyable-label">Título</div>
+                    <div class="copyable-value" id="page-title">-</div>
+                    <button class="copyable-btn" data-target="page-title" title="Copiar título">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="copyable-item" id="page-description-container">
+                    <div class="copyable-label">Descripción</div>
+                    <div class="copyable-value" id="page-description">-</div>
+                    <button class="copyable-btn" data-target="page-description" title="Copiar descripción">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="copyable-item" id="page-url-container">
+                    <div class="copyable-label">URL</div>
+                    <div class="copyable-value" id="page-url">-</div>
+                    <button class="copyable-btn" data-target="page-url" title="Copiar URL">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Meta Tags Section -->
+            <div class="element-section">
+                <div class="section-title">Meta Tags & SEO</div>
+                <div id="meta-tags-container" class="meta-tags-list">
+                    <div class="meta-tag-item">
+                        <span class="meta-tag-name">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technologies Section -->
+            <div class="element-section">
+                <div class="section-header">
+                    <div class="section-title">Tecnologías Detectadas</div>
+                    <button class="action-btn" id="btn-export-csv" title="Exportar CSV">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
+                            <path d="M213.66,122.34l-80,80a8,8,0,0,1-11.32,0l-80-80a8,8,0,0,1,11.32-11.32L120,180.69V40a8,8,0,0,1,16,0V180.69l66.34-69.67a8,8,0,0,1,11.32,11.32ZM216,200H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="technologies-container" class="technologies-list">
+                    <div class="tech-item">
+                        <span class="tech-name">Analizando...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Head Tags Section -->
+            <div class="element-section">
+                <div class="section-title">Etiquetas del Head</div>
+                <div id="head-tags-container" class="head-tags-list">
+                    <div class="head-tag-item">
+                        <span class="head-tag-name">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Color Palettes Section -->
+            <div class="element-section">
+                <div class="section-header">
+                    <div class="section-title">Paleta de Colores</div>
+                    <button class="action-btn" id="btn-copy-palette" title="Copiar toda la paleta">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
+                            <path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="color-palette-container" class="color-palette">
+                    <div class="color-swatch loading">Analizando colores...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: About -->
+        <div id="tab-content-about" class="tab-content" style="padding:16px;text-align:center;">
+            <div style="margin-bottom:20px;">
+                <img src="../images/icon128.png" width="64" height="64" alt="Canopy Ruler" style="border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,0.3);" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 256 256" fill="currentColor" style="display:none;margin:0 auto;color:var(--accent);"><path d="M235.32,73.37,182.63,20.69a16,16,0,0,0-22.63,0L20.68,160a16,16,0,0,0,0,22.63l52.69,52.68a16,16,0,0,0,22.63,0L235.32,96A16,16,0,0,0,235.32,73.37ZM84.68,224,32,171.31l32-32,26.34,26.35a8,8,0,0,0,11.32-11.32L75.31,128,96,107.31l26.34,26.35a8,8,0,0,0,11.32-11.32L107.31,96,128,75.31l26.34,26.35a8,8,0,0,0,11.32-11.32L139.31,64l32-32L224,84.69Z"/></svg>
+            </div>
+            <h2 style="color:var(--text);margin:0 0 4px 0;font-size:18px;">Canopy Ruler</h2>
+            <p style="color:var(--accent);font-size:12px;margin:0 0 20px 0;font-weight:600;">v1.0.0</p>
+
+            <div style="text-align:left;color:var(--text-dim);font-size:12px;line-height:1.7;max-width:340px;margin:0 auto;">
+                <p style="color:var(--text);font-weight:600;">Inspector web para diseñadores y desarrolladores.</p>
+                <p>Explora y depura interfaces web con herramientas de medición de precisión. Inspecciona elementos, extrae CSS, identifica tipografías, captura pantallas y analiza la paleta de colores de cualquier página — todo desde una barra flotante que no interrumpe tu flujo de trabajo.</p>
+
+                <div style="margin:20px 0;">
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                        <span class="about-tag">Inspección CSS</span>
+                        <span class="about-tag">Modelo de Caja</span>
+                        <span class="about-tag">WhatFont</span>
+                        <span class="about-tag">Paleta de Colores</span>
+                        <span class="about-tag">Reglas</span>
+                        <span class="about-tag">Medición</span>
+                        <span class="about-tag">X-Ray</span>
+                        <span class="about-tag">Captura PNG</span>
+                        <span class="about-tag">Selector de Color</span>
+                        <span class="about-tag">Grid</span>
+                        <span class="about-tag">Breakpoints CSS</span>
+                        <span class="about-tag">Diseño Responsive</span>
+                        <span class="about-tag">Exportar CSV</span>
+                        <span class="about-tag">Descarga de Fuentes</span>
+                        <span class="about-tag">Detección de Tecnologías</span>
+                        <span class="about-tag">Inglés / Español</span>
+                    </div>
+                </div>
+
+                <div style="margin:24px 0;padding:16px;background:var(--background);border-radius:8px;border:1px solid var(--border);">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                        <div style="width:40px;height:40px;border-radius:50%;background:#3e8914;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700;flex-shrink:0;">G</div>
+                        <div style="text-align:left;">
+                            <div style="color:var(--text);font-weight:600;font-size:13px;">Gustavo Gutiérrez</div>
+                            <div style="color:var(--text-dim);font-size:11px;">Bogotá, Colombia</div>
+                        </div>
+                    </div>
+                    <a href="https://www.linkedin.com/in/gustavo-gutierrez-mercado" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;font-size:12px;padding:6px 12px;border:1px solid var(--accent);border-radius:6px;transition:all 0.15s;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M216,24H40A16,16,0,0,0,24,40V216a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V40A16,16,0,0,0,216,24ZM96,176a8,8,0,0,1-16,0V112a8,8,0,0,1,16,0ZM88,92a12,12,0,1,1,12-12A12,12,0,0,1,88,92Zm96,84a8,8,0,0,1-16,0V140a20,20,0,0,0-40,0v36a8,8,0,0,1-16,0V112a8,8,0,0,1,15.79-1.78A36,36,0,0,1,184,140Z"/></svg>
+                        LinkedIn
+                    </a>
+                </div>
+
+                <p style="font-size:11px;color:var(--text-dim);margin-top:24px;text-align:center;">Hecho con ❤️ en Colombia · Código abierto</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Copied!</div>
+
+    <script src="panel.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+    "EXT_DESCRIPTION": {
+        "message": "Web inspector with green forest theme. Measure elements, extract CSS & colors. Free and open."
+    },
+    "EXT_NAME": {
+        "message": "Canopy Ruler - Web Inspector"
+    },
+    "EXT_NAME_SHORT": {
+        "message": "Canopy Ruler"
+    }
+}

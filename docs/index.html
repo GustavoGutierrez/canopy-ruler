@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Canopy Ruler — Web Inspector for Designers &amp; Developers</title>
+    <meta name="description" content="A free, open-source Chrome extension for web designers and developers. Inspect elements, measure distances, extract CSS and colors, identify fonts, capture screenshots, and more — all from a floating toolbar.">
+    <meta name="author" content="Gustavo Gutiérrez">
+    <link rel="icon" type="image/png" href="../images/icon64.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:ital,wght@0,300..500;1,300..500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f8faf8;
+            --surface: #ffffff;
+            --border: #d4e8cf;
+            --text: #1a2e14;
+            --text-dim: #5a7650;
+            --accent: #3e8914;
+            --accent-hover: #2e6a0e;
+            --dark: #134611;
+            --light: #e8fccf;
+            --muted: #96e072;
+            --radius: 12px;
+            --shadow: 0 2px 12px rgba(19,70,17,0.08);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        header {
+            background: linear-gradient(135deg, var(--dark) 0%, #1a5c16 100%);
+            color: #fff;
+            padding: 80px 24px 60px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        .header-content { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; }
+        .logo-img { width: 80px; height: 80px; border-radius: 18px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); margin-bottom: 24px; }
+        header h1 { font-size: clamp(28px, 5vw, 48px); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; }
+        header .tagline { font-size: 18px; opacity: 0.85; font-weight: 400; margin-bottom: 32px; color: var(--muted); }
+        .badge-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+            color: #fff; border-radius: 20px; padding: 6px 16px; font-size: 13px;
+            text-decoration: none; transition: background 0.2s;
+        }
+        .badge:hover { background: rgba(255,255,255,0.18); }
+        .badge svg { width: 14px; height: 14px; flex-shrink: 0; }
+        main { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 24px; font-weight: 700; letter-spacing: -0.01em;
+            margin-bottom: 8px; color: var(--dark);
+        }
+        .section-sub { font-size: 15px; color: var(--text-dim); margin-bottom: 28px; }
+        .features-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .feature-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .feature-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(19,70,17,0.1); }
+        .feature-card .feature-icon {
+            width: 40px; height: 40px; border-radius: 10px; background: var(--light);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent); margin-bottom: 14px; font-size: 20px;
+        }
+        .feature-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: var(--dark); }
+        .feature-card p { font-size: 13px; color: var(--text-dim); line-height: 1.55; }
+        .author-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow);
+            display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+        }
+        .author-avatar {
+            width: 64px; height: 64px; border-radius: 50%; background: var(--accent);
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 28px; font-weight: 700; flex-shrink: 0;
+        }
+        .author-info h3 { font-size: 18px; font-weight: 700; color: var(--dark); }
+        .author-info .location { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; }
+        .linkedin-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border: 1px solid var(--accent); border-radius: 8px;
+            color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600;
+            transition: all 0.15s;
+        }
+        .linkedin-btn:hover { background: var(--accent); color: #fff; }
+        .install-steps { counter-reset: step; }
+        .install-step {
+            counter-increment: step; display: flex; gap: 16px; align-items: flex-start;
+            padding: 16px 0; border-bottom: 1px solid var(--border);
+        }
+        .install-step:last-child { border-bottom: none; }
+        .install-step::before {
+            content: counter(step);
+            flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+            background: var(--light); color: var(--accent); font-weight: 700; font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .install-step h4 { font-size: 14px; font-weight: 700; margin-bottom: 2px; color: var(--dark); }
+        .install-step p { font-size: 13px; color: var(--text-dim); }
+        .install-step code {
+            background: var(--light); color: var(--accent); padding: 2px 6px;
+            border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 12px;
+        }
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+        .tag {
+            display: inline-block; padding: 3px 10px; background: var(--light);
+            color: var(--accent); border-radius: 10px; font-size: 11px; font-weight: 600;
+        }
+        footer {
+            text-align: center; padding: 32px 24px; border-top: 1px solid var(--border);
+            color: var(--text-dim); font-size: 13px;
+        }
+        footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+        @media (max-width: 600px) {
+            header { padding: 48px 16px 40px; }
+            main { padding: 32px 16px 60px; }
+            .author-card { flex-direction: column; text-align: center; }
+            .author-avatar { margin: 0 auto; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-content">
+        <img class="logo-img" src="../images/icon128.png" alt="Canopy Ruler" onerror="this.style.display='none'">
+        <h1>Canopy Ruler</h1>
+        <p class="tagline">The web inspector for designers &amp; developers. Measure, inspect, extract — without leaving your workflow.</p>
+        <div class="badge-row">
+            <span class="badge">
+                <svg viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm37.66,77.66-56,56a8,8,0,0,1-11.32-11.32L148.69,96H88a8,8,0,0,1,0-16h80a8,8,0,0,1,8,8v80a8,8,0,0,1-16,0Z"/></svg>
+                Free &amp; Open Source
+            </span>
+            <span class="badge">
+                <svg viewBox="0 0 256 256" fill="currentColor"><path d="M224,72H208V64a24,24,0,0,0-24-24H40A24,24,0,0,0,16,64v96a24,24,0,0,0,24,24H152v8a24,24,0,0,0,24,24h48a24,24,0,0,0,24-24V96A24,24,0,0,0,224,72ZM40,168a8,8,0,0,1-8-8V64a8,8,0,0,1,8-8H184a8,8,0,0,1,8,8v8H176a24,24,0,0,0-24,24v72Zm192,24a8,8,0,0,1-8,8H176a8,8,0,0,1-8-8V96a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8Zm-96,16a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h40A8,8,0,0,1,136,208Zm80-96a8,8,0,0,1-8,8H192a8,8,0,0,1,0-16h16A8,8,0,0,1,216,112Z"/></svg>
+                Manifest V3
+            </span>
+            <a class="badge" href="https://github.com" target="_blank" rel="noopener">
+                <svg viewBox="0 0 256 256" fill="currentColor"><path d="M208.31,75.68A59.78,59.78,0,0,0,202.93,28,8,8,0,0,0,196,24a59.75,59.75,0,0,0-48,24H124A59.75,59.75,0,0,0,76,24a8,8,0,0,0-6.93,4,59.78,59.78,0,0,0-5.38,47.68A58.14,58.14,0,0,0,56,104v8a56.06,56.06,0,0,0,48.44,55.47A39.8,39.8,0,0,0,96,192v8H72a24,24,0,0,1-24-24A40,40,0,0,0,8,136a8,8,0,0,0,0,16,24,24,0,0,1,24,24,40,40,0,0,0,40,40H96v16a8,8,0,0,0,16,0V192a24,24,0,0,1,48,0v40a8,8,0,0,0,16,0V192a39.8,39.8,0,0,0-8.44-24.53A56.06,56.06,0,0,0,216,112v-8A58.14,58.14,0,0,0,208.31,75.68Z"/></svg>
+                GitHub
+            </a>
+        </div>
+    </div>
+</header>
+
+<main>
+
+    <!-- About -->
+    <section>
+        <h2>About</h2>
+        <p class="section-sub">Canopy Ruler is a free, open-source Chrome extension that puts a complete web inspection toolkit into a floating toolbar. Inspect DOM elements, measure pixel-perfect distances, extract CSS and colors, identify and download fonts, capture screenshots, analyze page color palettes, and detect the technologies powering any website — all without leaving your tab.</p>
+        <div class="tag-cloud">
+            <span class="tag">Element Inspection</span><span class="tag">CSS Extraction</span>
+            <span class="tag">Box Model</span><span class="tag">WhatFont</span>
+            <span class="tag">Color Palette</span><span class="tag">Rulers</span>
+            <span class="tag">Distance Measurement</span><span class="tag">X-Ray Mode</span>
+            <span class="tag">Screenshot PNG</span><span class="tag">Color Picker</span>
+            <span class="tag">Grid Overlay</span><span class="tag">CSS Breakpoints</span>
+            <span class="tag">Responsive Mode</span><span class="tag">CSV Export</span>
+            <span class="tag">Font Download</span><span class="tag">Tech Detection</span>
+            <span class="tag">English / Spanish</span><span class="tag">Page Rulers</span>
+            <span class="tag">Element Deletion</span><span class="tag">HTML Copy</span>
+            <span class="tag">Viewport Info</span><span class="tag">Meta Tags</span>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section>
+        <h2>Features</h2>
+        <p class="section-sub">Everything you need to inspect, measure, and analyze web pages — accessible from a compact floating dock.</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="22" height="22" viewBox="0 0 256 256" fill="currentColor"><path d="M219.31,184a16,16,0,0,1,0,22.63l-12.68,12.68a16,16,0,0,1-22.63,0L132.7,168,115,214.09c0,.1-.08.21-.13.32a15.83,15.83,0,0,1-14.6,9.59l-.79,0a15.83,15.83,0,0,1-14.41-11L32.8,52.92A16,16,0,0,1,52.92,32.8L213,85.07a16,16,0,0,1,1.41,29.8l-.32.13L168,132.69Z"/></svg>
+                </div>
+                <h3>Element Inspector</h3>
+                <p>Hover to highlight, click to select any DOM element. View dimensions, position, margin, border, padding, and computed CSS styles in the side panel. Navigate between parent and child elements with keyboard shortcuts.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="22" height="22" viewBox="0 0 256 256" fill="currentColor"><path d="M136,40V216a8,8,0,0,1-16,0V40a8,8,0,0,1,16,0ZM96,120H35.31l18.35-18.34A8,8,0,0,0,42.34,90.34l-32,32a8,8,0,0,0,0,11.32l32,32a8,8,0,0,0,11.32-11.32L35.31,136H96a8,8,0,0,0,0-16Zm149.66,2.34-32-32a8,8,0,0,0-11.32,11.32L220.69,120H160a8,8,0,0,0,0,16h60.69l-18.35,18.34a8,8,0,0,0,11.32,11.32l32-32A8,8,0,0,0,245.66,122.34Z"/></svg>
+                </div>
+                <h3>Measure &amp; Rulers</h3>
+                <p>Add floating rulers with click-and-drag. Measure pixel-perfect distances between any two elements. Enable page rulers on the viewport edges for quick visual reference.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="22" height="22" viewBox="0 0 256 256" fill="currentColor"><path d="M64,56V200a8,8,0,0,0,16,0V136h56v64a8,8,0,0,0,16,0V56a8,8,0,0,0-8-8H72A8,8,0,0,0,64,56Zm16,8h56v56H80Z"/></svg>
+                </div>
+                <h3>WhatFont</h3>
+                <p>Hover over any text to instantly identify its font family, weight, style, size, line height, and color. Click to pin a detailed popover with a live preview. Download the actual font file (.woff2, .woff, .ttf) with one click — detects fonts from Google Fonts, Adobe Fonts, Typekit, and all standard <code>@font-face</code> declarations.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="22" height="22" viewBox="0 0 256 256" fill="currentColor"><path d="M224,67.3a35.79,35.79,0,0,0-11.26-25.66c-14-13.28-36.72-12.78-50.62,1.13L142.8,62.2a24,24,0,0,0-33.14.77l-9,9a16,16,0,0,0,0,22.64l2,2.06-51,51a39.75,39.75,0,0,0-10.53,38l-8,18.41A13.68,13.68,0,0,0,36,219.3a15.92,15.92,0,0,0,17.71,3.35L71.23,215a39.89,39.89,0,0,0,37.06-10.75l51-51,2.06,2.06a16,16,0,0,0,22.62,0l9-9a24,24,0,0,0,.74-33.18l19.75-19.87A35.75,35.75,0,0,0,224,67.3Z"/></svg>
+                </div>
+                <h3>Color Picker &amp; Palette</h3>
+                <p>Pick any color from the page with the eyedropper tool. View the full page color palette in the Page tab — swatches sorted by hue for a beautiful gradient display. Hover for hex codes, click to copy. Copy the entire palette at once.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="22" height="22" viewBox="0 0 256 256" fill="currentColor"><path d="M208,56H180.28L166.65,35.56A8,8,0,0,0,160,32H96a8,8,0,0,0-6.65,3.56L75.71,56H48A24,24,0,0,0,24,80V192a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V80A24,24,0,0,0,208,56Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H80a8,8,0,0,0,6.66-3.56L100.28,48h55.43l13.63,20.44A8,8,0,0,0,176,72h32a8,8,0,0,1,8,8Z"/></svg>
+                </div>
+                <h3>Screenshot Capture</h3>
+                <p>Capture the visible tab as a PNG screenshot with one click. Automatically downloads with a timestamped filename. No extra dialogs or prompts.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="22" height="22" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76Z"/></svg>
+                </div>
+                <h3>X-Ray Mode</h3>
+                <p>Toggle an outline overlay on every element in the page to visualize the DOM structure at a glance. Great for debugging layout and nesting issues.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="22" height="22" viewBox="0 0 256 256" fill="currentColor"><path d="M200,40H56A16,16,0,0,0,40,56V200a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,80H136V56h64ZM120,56v64H56V56ZM56,136h64v64H56Zm144,64H136V136h64v64Z"/></svg>
+                </div>
+                <h3>Grid Overlay &amp; Breakpoints</h3>
+                <p>Superimpose a pixel grid over the page for alignment checks. View CSS breakpoints and test responsive design with a resizable viewport simulator.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="22" height="22" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32Z"/></svg>
+                </div>
+                <h3>Find Element</h3>
+                <p>Search the DOM with CSS selectors. Type any valid selector and press Enter to jump directly to the matching element. Highlights matches for quick navigation.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="22" height="22" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm37.66,77.66-56,56a8,8,0,0,1-11.32-11.32L148.69,96H88a8,8,0,0,1,0-16h80a8,8,0,0,1,8,8v80a8,8,0,0,1-16,0Z"/></svg>
+                </div>
+                <h3>Page Analysis</h3>
+                <p>Open the Page tab to see meta tags, SEO information, detected technologies (100+ frameworks, libraries, analytics, CDNs), and head tag details — all grouped and collapsible. Export detected technologies as CSV.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="22" height="22" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM101.63,168h52.74C149.08,188.48,138.84,204.87,128,215.61c-9.16-10.74-21.4-27.13-26.37-47.61Z"/></svg>
+                </div>
+                <h3>Bilingual</h3>
+                <p>Toggle between English and Spanish with a single click. Language preference is saved and persists across sessions. Both the floating dock and the side panel update instantly.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="22" height="22" viewBox="0 0 256 256" fill="currentColor"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM80,184a8,8,0,0,1,0-16h96a8,8,0,0,1,0,16Z"/></svg>
+                </div>
+                <h3>Resource Viewer &amp; Viewport</h3>
+                <p>Extract and preview all images (including SVGs) from a selected element. Download individual images or all at once. Check window, document, and screen dimensions with the viewport info overlay.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation -->
+    <section>
+        <h2>Installation</h2>
+        <p class="section-sub">Get Canopy Ruler running in under a minute.</p>
+        <div class="install-steps">
+            <div class="install-step">
+                <div>
+                    <h4>Clone the repository</h4>
+                    <p><code>git clone https://github.com/username/canopy-ruler.git</code></p>
+                </div>
+            </div>
+            <div class="install-step">
+                <div>
+                    <h4>Open Chrome Extensions</h4>
+                    <p>Navigate to <code>chrome://extensions/</code> in your browser.</p>
+                </div>
+            </div>
+            <div class="install-step">
+                <div>
+                    <h4>Enable Developer Mode</h4>
+                    <p>Toggle the <strong>Developer mode</strong> switch in the top-right corner.</p>
+                </div>
+            </div>
+            <div class="install-step">
+                <div>
+                    <h4>Load Unpacked</h4>
+                    <p>Click <strong>Load unpacked</strong> and select the <code>canopy-ruler/</code> folder.</p>
+                </div>
+            </div>
+            <div class="install-step">
+                <div>
+                    <h4>Start Inspecting</h4>
+                    <p>Press <code>Alt+Shift+S</code> or click the extension icon to activate the floating dock.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Keyboard Shortcuts -->
+    <section>
+        <h2>Keyboard Shortcuts</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3 style="font-family:'DM Mono',monospace;font-size:14px;">Alt + Shift + S</h3>
+                <p>Toggle the floating dock toolbar</p>
+            </div>
+            <div class="feature-card">
+                <h3 style="font-family:'DM Mono',monospace;font-size:14px;">Alt + ↑</h3>
+                <p>Navigate to parent element</p>
+            </div>
+            <div class="feature-card">
+                <h3 style="font-family:'DM Mono',monospace;font-size:14px;">Alt + ↓</h3>
+                <p>Navigate to child element</p>
+            </div>
+            <div class="feature-card">
+                <h3 style="font-family:'DM Mono',monospace;font-size:14px;">Backspace / Delete</h3>
+                <p>Remove selected ruler (when ruler is active)</p>
+            </div>
+            <div class="feature-card">
+                <h3 style="font-family:'DM Mono',monospace;font-size:14px;">Escape</h3>
+                <p>Exit current tool or close the extension</p>
+            </div>
+            <div class="feature-card">
+                <h3 style="font-family:'DM Mono',monospace;font-size:14px;">Enter</h3>
+                <p>Confirm find element search</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section>
+        <h2>Technology Detection</h2>
+        <p class="section-sub">Canopy Ruler automatically detects over 100 technologies across these categories:</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>JavaScript Frameworks</h3>
+                <p>React, Vue.js, Angular, Svelte, Next.js, Nuxt.js, Astro, Gatsby, Remix, Solid.js, Qwik, Preact, Alpine.js, Ember.js</p>
+            </div>
+            <div class="feature-card">
+                <h3>UI Frameworks</h3>
+                <p>Tailwind CSS, Bootstrap, MUI, Chakra UI, Ant Design, Vuetify, Semantic UI, Bulma, Materialize, Naive UI, Font Awesome</p>
+            </div>
+            <div class="feature-card">
+                <h3>Analytics &amp; Marketing</h3>
+                <p>Google Analytics, Google Tag Manager, Facebook Pixel, Hotjar, Mixpanel, Amplitude, Segment, FullStory, Microsoft Clarity, Intercom</p>
+            </div>
+            <div class="feature-card">
+                <h3>JavaScript Libraries</h3>
+                <p>jQuery, Lodash, Moment.js, D3.js, Three.js, Chart.js, GSAP, Swiper, Axios, Socket.IO, RxJS, Anime.js, Popper.js, Day.js, date-fns, Prism.js, Highlight.js, Framer Motion, XState, Immutable.js, core-js, Zone.js, i18next</p>
+            </div>
+            <div class="feature-card">
+                <h3>Backend &amp; Languages</h3>
+                <p>Node.js, PHP, Ruby on Rails, Django, Laravel, Express.js, ASP.NET, Symfony, NestJS, Go, Python (Flask, Jinja2), CodeIgniter, Koa.js, Fastify</p>
+            </div>
+            <div class="feature-card">
+                <h3>CDN, Hosting &amp; Services</h3>
+                <p>Cloudflare, Vercel, Netlify, AWS, Firebase, Supabase, Google APIs, jsDelivr, CDNJS, Unpkg, Google Maps, Stripe, PayPal, reCAPTCHA, HubSpot, Mailchimp, YouTube, Vimeo</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Author -->
+    <section>
+        <h2>Author</h2>
+        <div class="author-card">
+            <div class="author-avatar">G</div>
+            <div class="author-info">
+                <h3>Gustavo Gutiérrez</h3>
+                <p class="location">Bogotá, Colombia</p>
+                <a class="linkedin-btn" href="https://www.linkedin.com/in/gustavo-gutierrez-mercado" target="_blank" rel="noopener">
+                    <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M216,24H40A16,16,0,0,0,24,40V216a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V40A16,16,0,0,0,216,24ZM96,176a8,8,0,0,1-16,0V112a8,8,0,0,1,16,0ZM88,92a12,12,0,0,1,12-12,12,12,0,0,1,0,24A12,12,0,0,1,88,92Zm96,84a8,8,0,0,1-16,0V140a20,20,0,0,0-40,0v36a8,8,0,0,1-16,0V112a8,8,0,0,1,15.79-1.78A36,36,0,0,1,184,140Z"/></svg>
+                    LinkedIn
+                </a>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    <p>Made with ❤️ in Colombia · <a href="https://github.com/username/canopy-ruler" target="_blank" rel="noopener">Open source</a> · Free forever</p>
+</footer>
+
+</body>
+</html>
