@@ -1,10 +1,17 @@
-# <img src="images/icon64.png" width="48" height="48" alt=""> Canopy Ruler
+<div align="center">
+    <img src="images/icon128.png" width="128" height="128" alt="Canopy Ruler">
+    <h1>Canopy Ruler</h1>
+</div>
+
+<div align="center">
 
 [![Version](https://img.shields.io/badge/version-1.0.0-3e8914)](manifest.json)
 [![License](https://img.shields.io/badge/license-MIT-3e8914)](LICENSE)
 [![Chrome](https://img.shields.io/badge/chrome-MV3-3e8914?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/)
 [![Vanilla JS](https://img.shields.io/badge/vanilla-JS-3e8914?logo=javascript&logoColor=white)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-3e8914)](CONTRIBUTING.md)
+
+</div>
 
 > The measuring tool that spreads like a canopy over your web page.
 
