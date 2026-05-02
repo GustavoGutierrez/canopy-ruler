@@ -61,6 +61,17 @@
         }
         .badge:hover { background: rgba(255,255,255,0.18); }
         .badge svg { width: 14px; height: 14px; flex-shrink: 0; }
+        .install-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--accent); color: #fff;
+            border: none; border-radius: 12px;
+            padding: 14px 28px; font-size: 16px; font-weight: 700;
+            text-decoration: none; margin-bottom: 24px;
+            transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+            box-shadow: 0 4px 20px rgba(62,137,20,0.4);
+        }
+        .install-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(62,137,20,0.5); background: var(--accent-hover); }
+        .install-btn svg { width: 20px; height: 20px; }
         main { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
         section { margin-bottom: 56px; }
         h2 {
@@ -147,6 +158,10 @@
         <img class="logo-img" src="logo.webp" alt="Canopy Ruler" width="120" height="120">
         <h1>Canopy Ruler</h1>
         <p class="tagline">The web inspector for designers &amp; developers. Measure, inspect, extract — without leaving your workflow.</p>
+        <a class="install-btn" href="https://chromewebstore.google.com/detail/dgohjbfgfkocmjkmmjjbahgfphflidnn?utm_source=item-share-cb" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm37.66,77.66-56,56a8,8,0,0,1-11.32-11.32L148.69,96H88a8,8,0,0,1,0-16h80a8,8,0,0,1,8,8v80a8,8,0,0,1-16,0Z"/></svg>
+            Install from Chrome Web Store
+        </a>
         <div class="badge-row">
             <span class="badge">
                 <svg viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm37.66,77.66-56,56a8,8,0,0,1-11.32-11.32L148.69,96H88a8,8,0,0,1,0-16h80a8,8,0,0,1,8,8v80a8,8,0,0,1-16,0Z"/></svg>
