@@ -1,162 +1,156 @@
 # Canopy Ruler
 
-> **La regla de medición que se extiende como un dosel sobre tu página web.**
+> The measuring tool that spreads like a canopy over your web page.
 
-## ¿Qué significa Canopy Ruler?
-
-**Canopy** (dosel/bóveda vegetal) es la capa superior de árboles que cubre y protege el bosque. En esta extensión, representa la **capa de inspección** que se coloca sobre la página web para analizar, medir y visualizar cada elemento.
-
-**Ruler** (regla) es la herramienta fundamental de cualquier desarrollador para medir distancias, tamaños y espacios.
-
-Juntas, estas palabras forman **Canopy Ruler**: una herramienta de inspección y medición que se extiende como una bóveda sobre tu página, permitiéndote ver cada detalle del bosque digital. El nombre también rinde homenaje a la paleta de colores verde bosque que caracteriza la extensión.
+**Canopy Ruler** is a free, open-source Chrome extension that puts a complete web inspection toolkit into a floating toolbar. Inspect DOM elements, measure pixel-perfect distances, extract CSS and colors, identify and download fonts, capture screenshots, analyze page color palettes, and detect the technologies powering any website — all without leaving your tab.
 
 ---
 
-## Descripción
+## Features
 
-Canopy Ruler es una extensión de Chrome para desarrolladores web que proporciona herramientas avanzadas de inspección, medición y análisis de páginas web directamente desde el navegador.
+### Element Inspection
+- **Visual inspector** — hover to highlight, click to select any DOM element
+- **Side panel** with detailed element information: dimensions, position, layout, colors, typography
+- **Visual box model** — margin, border, padding, and content dimensions displayed as nested layers
+- **Parent/child navigation** via buttons or keyboard shortcuts (`Alt+↑` / `Alt+↓`)
+- **Dashed guide lines** on selected elements
+- **Copy CSS**, copy selector, copy HTML, delete element — all from the panel
 
-### Características principales
+### Measurement Tools
+- **Rulers** — click-and-drag floating rulers for free-form measurement
+- **Page Rulers** — horizontal and vertical rulers with pixel scale on viewport edges
+- **Distance** — measure pixel distance between any two elements
+- **Grid Overlay** — superimpose an alignment grid over the page
 
-#### Inspección de Elementos
-- Inspección visual con hover y selección de elementos
-- Panel lateral con información detallada del elemento
-- Modelo de caja visual (margin, border, padding, content)
-- Navegación padre/hijo con botones o atajos de teclado
-- Líneas de distancia entre elementos seleccionados y hover
-- Líneas punteadas guía en elementos seleccionados
-- Previsualización y descarga de imágenes contenidas en elementos
+### Typography & Fonts
+- **WhatFont** — hover over text to identify font family, weight, style, size, line height, and color
+- **Click to pin** — detailed popover with live font preview
+- **Font download** — download actual font files (.woff2, .woff, .ttf) from Google Fonts, Adobe Fonts, Typekit, Bunny Fonts, Fontshare, and any `@font-face` declaration
 
-#### Herramientas de Medición
-- **Rulers**: Reglas arrastrables para medir distancias libres
-- **Page Rulers**: Reglas horizontales y verticales con escala en píxeles
-- **Distance**: Medición de distancia entre dos elementos
-- **Grid Overlay**: Cuadrícula de alineación
+### Colors
+- **Color Picker** — eyedropper tool to pick any color from the page, copied to clipboard
+- **Color Palette** — full page color palette in the Page tab, sorted by hue. Hover for hex codes, click to copy, copy all at once
 
-#### Información de Página
-- **Meta Tags & SEO**: Visualización de todas las etiquetas meta relevantes
-- **Tecnologías Detectadas**: Identificación automática de frameworks, librerías y servicios (React, Vue, jQuery, Google Analytics, WordPress, etc.)
-- **Etiquetas del Head**: Links canónicos, preconnect, favicons, etc.
-- **Información General**: Título, descripción y URL copiables
+### Page Analysis
+- **Meta Tags & SEO** — view all meta tags with name and content
+- **Technology Detection** — identifies 100+ frameworks, libraries, analytics, CDNs, CMS, and backend languages. Grouped by category with collapsible headers. Export to CSV
+- **Head Tags** — canonical links, preconnect, favicons, preload hints — grouped by type
 
-#### Herramientas Visuales
-- **X-Ray Mode**: Visualización de contornos de todos los elementos
-- **Breakpoints**: Detección y visualización de breakpoints CSS
-- **Responsive Design**: Simulador de dispositivos con múltiples presets
-- **Viewport Info**: Información detallada del viewport, DPR, y breakpoint actual
-- **Color Picker**: Selector de color con copia al portapapeles
-- **Screenshot**: Captura de pantalla de la página
+### Visual Tools
+- **X-Ray Mode** — outline every element to visualize DOM structure
+- **CSS Breakpoints** — detect and display responsive breakpoints
+- **Responsive Mode** — resizable viewport simulator
+- **Viewport Info** — window, document, and screen dimensions with DPR and current breakpoint
+- **Screenshot** — capture the visible tab as PNG with one click
 
-#### Panel Lateral con Tabs
-- **Tab Elemento**: Información completa del elemento seleccionado
-  - Dimensiones y posición
-  - Modelo de caja visual interactivo
-  - Layout (display, position)
-  - Colores (background, text)
-  - Tipografía (font-family, size, weight)
-  - Selector, ID y Clases
-  - Recursos (imágenes y SVGs)
-- **Tab Página**: Información general de la página
-  - Título, descripción y URL copiables
-  - Meta tags SEO
-  - Tecnologías detectadas
-  - Etiquetas del head
+### Resources
+- Extract and preview images and SVGs from a selected element
+- **SVG preview** — inline SVGs render as actual graphics (not placeholders)
+- Download individual images or all at once
 
-## Atajos de Teclado
+### Language
+- **Bilingual** — toggle between English and Spanish with one click
+- Flag icons (🇨🇴 / 🇺🇸) indicate current language
+- Preference persists across sessions via `chrome.storage`
 
-| Atajo | Acción |
-|-------|--------|
-| `Alt + Shift + S` | Activar/Desactivar inspección |
-| `Alt + ↑` | Seleccionar elemento padre |
-| `Alt + ↓` | Seleccionar elemento hijo |
-| `Esc` | Cerrar herramienta activa |
+---
 
-## Instalación
+## Keyboard Shortcuts
 
-### Desde Chrome Web Store (próximamente)
-1. Visita la Chrome Web Store
-2. Busca "Canopy Ruler"
-3. Haz clic en "Agregar a Chrome"
+| Shortcut | Action |
+|---|---|
+| `Alt+Shift+S` | Toggle the floating dock / activate inspection |
+| `Alt+↑` | Select parent element |
+| `Alt+↓` | Select child element |
+| `Backspace` / `Delete` | Remove selected ruler |
+| `Escape` | Exit current tool / close extension |
+| `Enter` | Confirm find element search |
 
-### Instalación Manual (Modo Desarrollador)
-1. Descarga o clona este repositorio
-2. Abre Chrome y navega a `chrome://extensions/`
-3. Activa el "Modo desarrollador" en la esquina superior derecha
-4. Haz clic en "Cargar descomprimida" y selecciona la carpeta `canopy-ruler/`
-5. La extensión aparecerá en tu barra de herramientas
+---
 
-## Uso
+## Installation
 
-1. Haz clic en el icono de Canopy Ruler en la barra de herramientas de Chrome
-2. Usa `Alt + Shift + S` o el botón del dock para activar la inspección
-3. Pasa el cursor sobre cualquier elemento de la página para ver información
-4. Haz clic para seleccionar un elemento y ver detalles en el panel lateral
-5. Usa las herramientas del dock para medir, ver grid, o analizar la página
+### From Source (Developer Mode)
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/username/canopy-ruler.git
+   ```
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable **Developer mode** (toggle in the top-right corner)
+4. Click **Load unpacked** and select the `canopy-ruler/` folder
+5. Press `Alt+Shift+S` or click the extension icon to activate
 
-## Estructura del Proyecto
+---
+
+## Project Structure
 
 ```
 canopy-ruler/
-├── manifest.json              # Configuración de la extensión Chrome MV3
-├── background.js              # Service Worker
+├── manifest.json          # Chrome MV3 extension manifest
+├── background.js          # Service worker (screenshots, downloads, context menu)
 ├── scripts/
-│   └── content.js             # Content Script (dock, reglas, inspección)
+│   └── content.js         # Content script (dock, rulers, inspection, WhatFont, etc.)
 ├── sidepanel/
-│   ├── index.html             # Panel lateral
-│   ├── panel.js               # Controlador del panel
-│   └── styles.css             # Estilos del panel
+│   ├── index.html         # Side panel UI (3 tabs: Element, Page, About)
+│   ├── panel.js           # Panel controller
+│   └── styles.css         # Panel styles (Green Forest theme)
 ├── images/
-│   ├── icon16.png             # Iconos de la extensión
-│   ├── icon32.png
-│   ├── icon48.png
-│   └── icon128.png
-└── _locales/
-    ├── en/messages.json       # Traducciones inglés
-    └── es/messages.json       # Traducciones español
+│   ├── icon{16,32,48,64,128}.png  # Extension icons
+│   ├── usa.svg / colombia.svg     # Language flags
+│   ├── icons/                      # Phosphor Icons SVGs
+│   └── pattern/                    # Utility pattern SVGs
+├── docs/
+│   └── index.html         # GitHub Pages documentation
+├── _locales/
+│   ├── en/messages.json   # English strings
+│   └── es/messages.json   # Spanish strings
+├── LICENSE                # MIT License
+├── CONTRIBUTING.md        # Contribution guide
+└── README.md              # This file
 ```
-
-## Tecnologías
-
-- **Manifest V3**: Última versión de extensiones Chrome
-- **JavaScript vanilla**: Sin frameworks para máxima compatibilidad
-- **CSS Custom Properties**: Temas dinámicos y personalización
-- **SVG**: Iconos escalables de Phosphor Icons
-
-## Tema de Colores
-
-Canopy Ruler utiliza una paleta de colores **verde bosque** (Forest Green):
-
-| Color | Hex | Uso |
-|-------|-----|-----|
-| Forest Black | `#134611` | Fondos oscuros |
-| Forest Green | `#3e8914` | Acentos primarios |
-| Jungle | `#3da35d` | Estados hover |
-| Light Green | `#96e072` | Texto acentuado |
-| Frosted Mint | `#e8fccf` | Fondos claros |
-
-## Contribución
-
-Las contribuciones son bienvenidas. Para contribuir:
-
-1. Haz fork del repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commitea tus cambios (`git commit -am 'Agrega nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
-
-## Licencia
-
-Este proyecto es de código abierto. Los iconos son propiedad de [Phosphor Icons](https://phosphoricons.com) bajo licencia MIT.
-
-## Créditos
-
-- **Iconos**: [Phosphor Icons](https://phosphoricons.com) - Iconos SVG escalables
-- **Fuentes**: [DM Sans](https://fonts.google.com/specimen/DM+Sans) y [DM Mono](https://fonts.google.com/specimen/DM+Mono) de Google Fonts
 
 ---
 
-<div align="center">
+## Technology Stack
 
-**Canopy Ruler** — *Mide el bosque, árbol por árbol.*
+- **Manifest V3** — latest Chrome extension APIs
+- **Vanilla JavaScript** — no frameworks, zero dependencies
+- **CSS Custom Properties** — dynamic theming
+- **Phosphor Icons** — scalable SVG icons (MIT licensed)
+- **DM Sans & DM Mono** — Google Fonts
 
-</div>
+---
+
+## Color Theme
+
+Canopy Ruler uses a **Green Forest** palette inspired by a canopy of trees:
+
+| Name | Hex | Usage |
+|---|---|---|
+| Forest Black | `#134611` | Dark backgrounds |
+| Forest Green | `#3e8914` | Primary accents, active states |
+| Jungle | `#3da35d` | Hover states |
+| Light Green | `#96e072` | Accent text, icon color |
+| Frosted Mint | `#e8fccf` | Light backgrounds, highlights |
+
+---
+
+## Author
+
+**Gustavo Gutiérrez** — Bogotá, Colombia
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/gustavo-gutierrez-mercado)
+
+---
+
+## Credits
+
+- **Icons**: [Phosphor Icons](https://phosphoricons.com) — MIT licensed
+- **Fonts**: [DM Sans](https://fonts.google.com/specimen/DM+Sans) & [DM Mono](https://fonts.google.com/specimen/DM+Mono) — Google Fonts
+- **Flags**: Circular flag SVGs for language switching
+
+---
+
+## License
+
+MIT © Gustavo Gutiérrez. See [LICENSE](./LICENSE) for details.
