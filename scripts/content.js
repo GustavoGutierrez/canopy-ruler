@@ -1284,7 +1284,7 @@
         if (!whatFontTooltip) {
             whatFontTooltip = document.createElement('div');
             whatFontTooltip.id = 'canopy-whatfont-tooltip';
-            whatFontTooltip.style.cssText = 'position:fixed;z-index:2147483646;pointer-events:none;' +
+            whatFontTooltip.style.cssText = 'position:fixed;z-index:2147483647;pointer-events:none;' +
                 'background:rgba(19,70,17,0.95);backdrop-filter:blur(8px);color:#e8fccf;' +
                 'padding:8px 14px;border-radius:8px;font-size:13px;font-family:monospace;' +
                 'border:1px solid #3e8914;box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
@@ -1477,7 +1477,7 @@
         // Create popover
         var popover = document.createElement('div');
         popover.className = 'canopy-whatfont-popover';
-        popover.style.cssText = 'position:fixed;z-index:2147483646;' +
+        popover.style.cssText = 'position:fixed;z-index:2147483647;display:block;' +
             'background:rgba(19,70,17,0.95);backdrop-filter:blur(12px);color:#e8fccf;' +
             'border:1px solid #3e8914;border-radius:12px;padding:16px;' +
             'box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:-apple-system,BlinkMacSystemFont,sans-serif;' +
@@ -1583,6 +1583,10 @@
         var familyLabel = document.createElement('div');
         familyLabel.style.cssText = 'font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#96e072;margin-bottom:4px;';
         familyLabel.textContent = t('whatfont.family');
+
+        var familyValue = document.createElement('div');
+        familyValue.style.cssText = 'font-size:13px;color:#e8fccf;word-break:break-all;';
+        familyValue.innerHTML = formatFontFamily(fontFamily);
 
         familySection.appendChild(familyLabel);
         familySection.appendChild(familyValue);

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Privacy Policy — Canopy Ruler</title>
+    <meta name="description" content="Privacy Policy for Canopy Ruler Chrome extension. We do not collect, store, or transmit any personal data.">
+    <meta name="author" content="Gustavo Gutiérrez">
+    <link rel="icon" type="image/webp" href="logo.webp">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:ital,wght@0,300..500;1,300..500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f8faf8;
+            --surface: #ffffff;
+            --border: #d4e8cf;
+            --text: #1a2e14;
+            --text-dim: #5a7650;
+            --accent: #3e8914;
+            --accent-hover: #2e6a0e;
+            --dark: #134611;
+            --light: #e8fccf;
+            --muted: #96e072;
+            --radius: 12px;
+            --shadow: 0 2px 12px rgba(19,70,17,0.08);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+        header {
+            background: linear-gradient(135deg, var(--dark) 0%, #1a5c16 100%);
+            color: #fff;
+            padding: 60px 24px 48px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        .header-content { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; }
+        .logo-img { width: 80px; height: 80px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); margin-bottom: 20px; }
+        header h1 { font-size: clamp(24px, 4vw, 40px); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+        header .tagline { font-size: 16px; opacity: 0.8; font-weight: 400; color: var(--muted); }
+        header a { color: var(--light); text-decoration: none; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; }
+        header a:hover { color: #fff; }
+        main { max-width: 800px; margin: 0 auto; padding: 48px 24px 80px; }
+        section { margin-bottom: 48px; }
+        h2 {
+            font-size: 22px; font-weight: 700; letter-spacing: -0.01em;
+            margin-bottom: 16px; color: var(--dark);
+            padding-bottom: 8px; border-bottom: 2px solid var(--border);
+        }
+        h3 { font-size: 16px; font-weight: 700; color: var(--dark); margin: 24px 0 8px; }
+        p { margin-bottom: 14px; color: var(--text-dim); font-size: 14px; }
+        ul { margin: 8px 0 16px 20px; }
+        li { font-size: 14px; color: var(--text-dim); margin-bottom: 6px; }
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+        .card-icon {
+            font-size: 32px; margin-bottom: 12px;
+        }
+        .card h3 { margin-top: 0; }
+        .last-updated {
+            display: inline-block; padding: 4px 12px;
+            background: var(--light); color: var(--accent);
+            border-radius: 8px; font-size: 12px; font-weight: 600;
+            margin-bottom: 32px;
+        }
+        footer {
+            text-align: center; padding: 32px 24px; border-top: 1px solid var(--border);
+            color: var(--text-dim); font-size: 13px;
+        }
+        footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+        @media (max-width: 600px) {
+            header { padding: 40px 16px 32px; }
+            main { padding: 32px 16px 60px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-content">
+        <a href="index.html"><img class="logo-img" src="logo.webp" alt="Canopy Ruler" width="80" height="80"></a>
+        <h1>Privacy Policy</h1>
+        <p class="tagline">Canopy Ruler — Web Inspector Extension</p>
+        <a href="index.html">
+            <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"/></svg>
+            Back to Home
+        </a>
+    </div>
+</header>
+
+<main>
+
+    <div class="last-updated">Effective Date: May 1, 2026</div>
+
+    <div class="card">
+        <div class="card-icon">🔒</div>
+        <h3>No Data Collection</h3>
+        <p>Canopy Ruler does <strong>not</strong> collect, store, transmit, or share any personal information, browsing history, page content, or usage data. All processing happens locally on your device.</p>
+    </div>
+
+    <section>
+        <h2>How the Extension Works</h2>
+
+        <h3>What Happens Locally</h3>
+        <p>All inspection, measurement, color picking, font detection, screenshot capture, and page analysis is performed entirely within your browser using standard Chrome Extension APIs. No data leaves your computer.</p>
+
+        <h3>Side Panel Communication</h3>
+        <p>The floating dock (content script) communicates with the side panel using Chrome's built-in <code>chrome.runtime.sendMessage</code> API. This communication happens within the extension sandbox and is not accessible to websites or external services.</p>
+
+        <h3>Persistent Storage</h3>
+        <p>The only data stored persistently is your language preference (English or Spanish), saved via <code>chrome.storage.local</code>. This setting stays on your device and is never transmitted anywhere.</p>
+
+        <h3>Font Downloads</h3>
+        <p>When you download a font file via the WhatFont tool, the extension uses Chrome's Downloads API to fetch the font URL directly. The font file is saved to your default downloads folder. No font data passes through any third-party server.</p>
+
+        <h3>Screenshots</h3>
+        <p>Screenshots are captured using Chrome's <code>tabs.captureVisibleTab</code> API and saved directly to your device. They are not uploaded or shared.</p>
+    </section>
+
+    <section>
+        <h2>What Canopy Ruler Does NOT Do</h2>
+        <ul>
+            <li>Does <strong>not</strong> collect personal information (name, email, location, IP address)</li>
+            <li>Does <strong>not</strong> track your browsing history or page visits</li>
+            <li>Does <strong>not</strong> use cookies or any tracking mechanisms</li>
+            <li>Does <strong>not</strong> send data to external servers or third parties</li>
+            <li>Does <strong>not</strong> include analytics, crash reporting, or telemetry</li>
+            <li>Does <strong>not</strong> inject ads or sponsored content</li>
+            <li>Does <strong>not</strong> modify webpage content (except for element deletion requested by you)</li>
+            <li>Does <strong>not</strong> require account creation or sign-in</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Permissions Explained</h2>
+        <p>Canopy Ruler requests the following Chrome permissions for specific functionality:</p>
+        <ul>
+            <li><strong>scripting / activeTab</strong> — to inject the inspector dock and tools into the current page</li>
+            <li><strong>contextMenus</strong> — to add the "Inspect with Canopy Ruler" right-click option</li>
+            <li><strong>commands</strong> — to support keyboard shortcuts (Alt+Shift+S, etc.)</li>
+            <li><strong>storage</strong> — to save your language preference locally</li>
+            <li><strong>sidePanel</strong> — to display the inspection panel in Chrome's side panel</li>
+            <li><strong>downloads</strong> — to save screenshots and font files to your device</li>
+            <li><strong>clipboardWrite</strong> (optional) — to copy CSS and color codes on your request</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Third-Party Services</h2>
+        <p>Canopy Ruler does not integrate with or transmit data to any third-party services. The extension is fully self-contained and operates offline.</p>
+    </section>
+
+    <section>
+        <h2>Open Source</h2>
+        <p>Canopy Ruler is open source under the MIT license. You can inspect, review, and verify every line of code at:</p>
+        <p><a href="https://github.com/GustavoGutierrez/canopy-ruler" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;">github.com/GustavoGutierrez/canopy-ruler</a></p>
+    </section>
+
+    <section>
+        <h2>Contact</h2>
+        <p>If you have questions about this privacy policy or the extension, contact:</p>
+        <p><strong>Gustavo Gutiérrez</strong><br>Bogotá, Colombia<br>
+        <a href="https://www.linkedin.com/in/gustavo-gutierrez-mercado" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;">LinkedIn</a></p>
+    </section>
+
+    <section>
+        <h2>Changes to This Policy</h2>
+        <p>This privacy policy may be updated occasionally. Changes will be reflected on this page with an updated effective date. Since no data is collected, policy changes will not affect any previously collected information.</p>
+    </section>
+
+</main>
+
+<footer>
+    <p>Made with ❤️ in Colombia · <a href="https://github.com/GustavoGutierrez/canopy-ruler" target="_blank" rel="noopener">Open source</a> · MIT License</p>
+</footer>
+
+</body>
+</html>
