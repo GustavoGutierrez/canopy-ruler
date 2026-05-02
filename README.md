@@ -141,6 +141,16 @@ Canopy Ruler uses a **Green Forest** palette inspired by a canopy of trees:
 
 ---
 
+## Screenshots
+
+![Canopy Ruler - Floating Dock and Element Inspector](screenshots/screenshot_1.png)
+
+![Canopy Ruler - WhatFont Tool](screenshots/screenshot_2.png)
+
+![Canopy Ruler - Color Palette and Page Analysis](screenshots/screenshot_3.png)
+
+---
+
 ## Author
 
 **Gustavo Gutiérrez** — Bogotá, Colombia
