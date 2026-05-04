@@ -195,6 +195,12 @@ Canopy Ruler uses a **Green Forest** palette inspired by a canopy of trees:
 - **Fonts**: [DM Sans](https://fonts.google.com/specimen/DM+Sans) & [DM Mono](https://fonts.google.com/specimen/DM+Mono) — Google Fonts
 - **Flags**: Circular flag SVGs for language switching
 
+## Support
+
+If Canopy Ruler has been useful to you, consider supporting development:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Z8Z81YYSUI)
+
 ---
 
 ## License
